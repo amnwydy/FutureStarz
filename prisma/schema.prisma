@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                String             @id @default(uuid())
+  name              String
+  email             String             @unique
+  password          String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  basketballStats   BasketballStats[]
+  strengthTraining  StrengthTraining[]
+  trainingGoals     TrainingGoal[]
+}
+
+model BasketballStats {
+  id                   String   @id @default(uuid())
+  userId               String
+  date                 DateTime @default(now())
+  fieldGoalPercentage  Int
+  threePointPercentage Int
+  freeThrowPercentage  Int
+  points               Int
+  rebounds             Int
+  assists              Int
+  steals               Int
+  blocks               Int
+  verticalJump         Float
+  createdAt            DateTime @default(now())
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StrengthTraining {
+  id           String   @id @default(uuid())
+  userId       String
+  date         DateTime @default(now())
+  weight       Float
+  benchPress   Int
+  squat        Int
+  deadlift     Int
+  workoutNotes String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TrainingGoal {
+  id           String   @id @default(uuid())
+  userId       String
+  goalType     String // 'basketball' or 'strength'
+  description  String
+  targetValue  Float
+  currentValue Float
+  targetDate   DateTime
+  completed    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
