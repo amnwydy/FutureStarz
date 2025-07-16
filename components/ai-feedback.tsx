@@ -1,184 +1,188 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
-import { Loader2, RefreshCw } from "lucide-react"
-import { getBasketballStats, getStrengthTraining } from "@/lib/data"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Brain, TrendingUp, Target } from "lucide-react"
+import { generateAIFeedback, getBasketballStats, getStrengthTraining } from "@/lib/data"
 
 interface AIFeedbackProps {
   userId: string
 }
 
 export default function AIFeedback({ userId }: AIFeedbackProps) {
+  const [feedback, setFeedback] = useState<any>(null)
+  const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [generating, setGenerating] = useState(false)
-  const [basketballStats, setBasketballStats] = useState<any[]>([])
-  const [strengthData, setStrengthData] = useState<any[]>([])
-  const [feedback, setFeedback] = useState<string>("")
-  const [comparison, setComparison] = useState<string>("")
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-
+    const loadFeedback = async () => {
       try {
-        // Fetch basketball stats
-        const basketballData = await getBasketballStats(userId)
-        setBasketballStats(basketballData || [])
+        const [aiResponse, basketballStats, strengthStats] = await Promise.all([
+          generateAIFeedback(userId),
+          getBasketballStats(userId),
+          getStrengthTraining(userId),
+        ])
 
-        // Fetch strength training data
-        const strengthTrainingData = await getStrengthTraining(userId)
-        setStrengthData(strengthTrainingData || [])
-
-        // Generate AI feedback if we have data
-        if (
-          (basketballData && basketballData.length > 0) ||
-          (strengthTrainingData && strengthTrainingData.length > 0)
-        ) {
-          generateAIFeedback(basketballData || [], strengthTrainingData || [])
-        } else {
-          setFeedback("Start tracking your stats to receive AI-powered feedback and analysis.")
-          setComparison("No data available for NBA player comparisons yet.")
-          setLoading(false)
-        }
+        setFeedback(aiResponse)
+        setStats({
+          basketball: basketballStats,
+          strength: strengthStats,
+        })
       } catch (error) {
-        console.error("Error fetching data for AI analysis:", error)
+        console.error("Error loading AI feedback:", error)
+      } finally {
         setLoading(false)
       }
     }
 
-    fetchData()
+    loadFeedback()
   }, [userId])
-
-  const generateAIFeedback = async (basketballData: any[], strengthData: any[]) => {
-    setGenerating(true)
-
-    try {
-      // Prepare the data for the AI
-      const recentBasketballStats = basketballData.slice(0, 5)
-      const recentStrengthData = strengthData.slice(0, 5)
-
-      // Generate feedback using AI SDK
-      const { text: feedbackText } = await generateText({
-        model: openai("gpt-4o"),
-        prompt: `
-          Analyze the following basketball and strength training data and provide personalized feedback:
-          
-          Basketball Stats: ${JSON.stringify(recentBasketballStats)}
-          Strength Training: ${JSON.stringify(recentStrengthData)}
-          
-          Provide specific, actionable feedback on areas of improvement and strengths based on this data.
-          Keep your response under 300 words and focus on practical advice.
-        `,
-      })
-
-      setFeedback(feedbackText)
-
-      // Generate NBA player comparison
-      const { text: comparisonText } = await generateText({
-        model: openai("gpt-4o"),
-        prompt: `
-          Based on these basketball stats: ${JSON.stringify(recentBasketballStats)}
-          
-          Compare the player's style and performance to NBA players (current or all-time greats).
-          Identify 2-3 NBA players with similar playing styles or statistical profiles.
-          Explain the similarities and what the player can learn from these NBA stars.
-          Keep your response under 250 words.
-        `,
-      })
-
-      setComparison(comparisonText)
-    } catch (error) {
-      console.error("Error generating AI feedback:", error)
-      setFeedback("Unable to generate AI feedback at this time. Please try again later.")
-      setComparison("Unable to generate NBA player comparisons at this time.")
-    } finally {
-      setGenerating(false)
-      setLoading(false)
-    }
-  }
-
-  const handleRefreshAnalysis = () => {
-    generateAIFeedback(basketballStats, strengthData)
-  }
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-4">
+        <div className="h-32 bg-gray-100 rounded animate-pulse" />
+        <div className="h-32 bg-gray-100 rounded animate-pulse" />
       </div>
     )
   }
 
+  const getLatestStats = () => {
+    if (!stats?.basketball?.length) return null
+    return stats.basketball[0]
+  }
+
+  const getStrengthStats = () => {
+    if (!stats?.strength?.length) return null
+    return stats.strength[0]
+  }
+
+  const latestBasketball = getLatestStats()
+  const latestStrength = getStrengthStats()
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefreshAnalysis}
-          disabled={generating || basketballStats.length === 0}
-        >
-          {generating ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Analyzing...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh Analysis
-            </>
+      {/* AI Analysis */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5" />
+            AI Performance Analysis
+          </CardTitle>
+          <CardDescription>Personalized insights based on your recent performance</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {feedback && (
+            <div className="space-y-3">
+              <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                <h4 className="font-medium text-blue-900 mb-2">Performance Feedback</h4>
+                <p className="text-blue-800">{feedback.feedback}</p>
+              </div>
+
+              <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
+                <h4 className="font-medium text-green-900 mb-2">Player Comparison</h4>
+                <p className="text-green-800">{feedback.comparison}</p>
+              </div>
+            </div>
           )}
-        </Button>
-      </div>
 
-      <Tabs defaultValue="feedback">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="feedback">Performance Feedback</TabsTrigger>
-          <TabsTrigger value="comparison">NBA Player Comparison</TabsTrigger>
-        </TabsList>
+          {!latestBasketball && !latestStrength && (
+            <div className="text-center py-8">
+              <Brain className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Start recording your stats to get AI-powered insights!</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        <TabsContent value="feedback" className="pt-4">
-          <Card>
-            <CardContent className="pt-6">
-              {basketballStats.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    No data available for AI analysis yet. Start tracking your stats to receive personalized feedback!
-                  </p>
-                </div>
-              ) : (
-                <div className="prose max-w-none dark:prose-invert">
-                  <p className="whitespace-pre-line">{feedback}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Performance Highlights */}
+      {latestBasketball && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Recent Basketball Performance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{latestBasketball.fieldGoalPercentage}%</div>
+                <div className="text-sm text-gray-500">Field Goal</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{latestBasketball.threePointPercentage}%</div>
+                <div className="text-sm text-gray-500">3-Point</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{latestBasketball.points}</div>
+                <div className="text-sm text-gray-500">Points</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">{latestBasketball.verticalJump}"</div>
+                <div className="text-sm text-gray-500">Vertical Jump</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        <TabsContent value="comparison" className="pt-4">
-          <Card>
-            <CardContent className="pt-6">
-              {basketballStats.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    No data available for NBA player comparisons yet. Start tracking your stats!
-                  </p>
-                </div>
-              ) : (
-                <div className="prose max-w-none dark:prose-invert">
-                  <p className="whitespace-pre-line">{comparison}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Strength Highlights */}
+      {latestStrength && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Recent Strength Training
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{latestStrength.benchPress}</div>
+                <div className="text-sm text-gray-500">Bench Press (lbs)</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{latestStrength.squat}</div>
+                <div className="text-sm text-gray-500">Squat (lbs)</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{latestStrength.deadlift}</div>
+                <div className="text-sm text-gray-500">Deadlift (lbs)</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{latestStrength.weight}</div>
+                <div className="text-sm text-gray-500">Body Weight (lbs)</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recommendations */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recommendations</CardTitle>
+          <CardDescription>Areas to focus on for improvement</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">Basketball</Badge>
+              <span className="text-sm">Focus on consistency in free throw shooting</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">Strength</Badge>
+              <span className="text-sm">Increase squat frequency for better leg power</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">Recovery</Badge>
+              <span className="text-sm">Track rest days between intense sessions</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

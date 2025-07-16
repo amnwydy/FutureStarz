@@ -1,7 +1,6 @@
-import { db } from "./db"
-
-// Basketball Stats Types
+// Simple localStorage-based data storage
 interface BasketballStats {
+  id: string
   userId: string
   date: string
   fieldGoalPercentage: number
@@ -15,8 +14,8 @@ interface BasketballStats {
   verticalJump: number
 }
 
-// Strength Training Types
 interface StrengthTraining {
+  id: string
   userId: string
   date: string
   weight: number
@@ -26,95 +25,51 @@ interface StrengthTraining {
   workoutNotes: string
 }
 
-// Save basketball stats
-export async function saveBasketballStats(stats: BasketballStats) {
-  return db.basketballStats.create({
-    data: {
-      userId: stats.userId,
-      date: new Date(stats.date),
-      fieldGoalPercentage: stats.fieldGoalPercentage,
-      threePointPercentage: stats.threePointPercentage,
-      freeThrowPercentage: stats.freeThrowPercentage,
-      points: stats.points,
-      rebounds: stats.rebounds,
-      assists: stats.assists,
-      steals: stats.steals,
-      blocks: stats.blocks,
-      verticalJump: stats.verticalJump,
-    },
-  })
+// Generate unique ID
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2)
 }
 
-// Get basketball stats for a user
+// Basketball Stats Functions
+export async function saveBasketballStats(stats: Omit<BasketballStats, "id">) {
+  const newStats = { ...stats, id: generateId() }
+
+  const existing = JSON.parse(localStorage.getItem("basketballStats") || "[]")
+  existing.push(newStats)
+  localStorage.setItem("basketballStats", JSON.stringify(existing))
+
+  return newStats
+}
+
 export async function getBasketballStats(userId: string) {
-  const stats = await db.basketballStats.findMany({
-    where: {
-      userId,
-    },
-    orderBy: {
-      date: "desc",
-    },
-    take: 10,
-  })
-
-  return stats.map((stat) => ({
-    id: stat.id,
-    userId: stat.userId,
-    date: stat.date.toISOString(),
-    fieldGoalPercentage: stat.fieldGoalPercentage,
-    threePointPercentage: stat.threePointPercentage,
-    freeThrowPercentage: stat.freeThrowPercentage,
-    points: stat.points,
-    rebounds: stat.rebounds,
-    assists: stat.assists,
-    steals: stat.steals,
-    blocks: stat.blocks,
-    verticalJump: stat.verticalJump,
-  }))
+  const allStats = JSON.parse(localStorage.getItem("basketballStats") || "[]")
+  return allStats
+    .filter((stat: BasketballStats) => stat.userId === userId)
+    .sort((a: BasketballStats, b: BasketballStats) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 10)
 }
 
-// Save strength training data
-export async function saveStrengthTraining(training: StrengthTraining) {
-  return db.strengthTraining.create({
-    data: {
-      userId: training.userId,
-      date: new Date(training.date),
-      weight: training.weight,
-      benchPress: training.benchPress,
-      squat: training.squat,
-      deadlift: training.deadlift,
-      workoutNotes: training.workoutNotes,
-    },
-  })
+// Strength Training Functions
+export async function saveStrengthTraining(training: Omit<StrengthTraining, "id">) {
+  const newTraining = { ...training, id: generateId() }
+
+  const existing = JSON.parse(localStorage.getItem("strengthTraining") || "[]")
+  existing.push(newTraining)
+  localStorage.setItem("strengthTraining", JSON.stringify(existing))
+
+  return newTraining
 }
 
-// Get strength training data for a user
 export async function getStrengthTraining(userId: string) {
-  const trainings = await db.strengthTraining.findMany({
-    where: {
-      userId,
-    },
-    orderBy: {
-      date: "desc",
-    },
-    take: 10,
-  })
-
-  return trainings.map((training) => ({
-    id: training.id,
-    userId: training.userId,
-    date: training.date.toISOString(),
-    weight: training.weight,
-    benchPress: training.benchPress,
-    squat: training.squat,
-    deadlift: training.deadlift,
-    workoutNotes: training.workoutNotes,
-  }))
+  const allTraining = JSON.parse(localStorage.getItem("strengthTraining") || "[]")
+  return allTraining
+    .filter((training: StrengthTraining) => training.userId === userId)
+    .sort((a: StrengthTraining, b: StrengthTraining) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 10)
 }
 
-// Generate AI feedback
+// AI Feedback (simplified)
 export async function generateAIFeedback(userId: string) {
-  // This would call the AI API in a real app
   return {
     feedback:
       "Based on your recent performance, you're showing great improvement in your three-point shooting. Focus on maintaining your form and consistency.",
@@ -123,7 +78,7 @@ export async function generateAIFeedback(userId: string) {
   }
 }
 
-// Save training goals
+// Training Goals
 export async function saveTrainingGoal(
   userId: string,
   goalType: string,
@@ -132,38 +87,27 @@ export async function saveTrainingGoal(
   currentValue: number,
   targetDate: string,
 ) {
-  return db.trainingGoal.create({
-    data: {
-      userId,
-      goalType,
-      description,
-      targetValue,
-      currentValue,
-      targetDate: new Date(targetDate),
-      completed: false,
-    },
-  })
+  const newGoal = {
+    id: generateId(),
+    userId,
+    goalType,
+    description,
+    targetValue,
+    currentValue,
+    targetDate,
+    completed: false,
+  }
+
+  const existing = JSON.parse(localStorage.getItem("trainingGoals") || "[]")
+  existing.push(newGoal)
+  localStorage.setItem("trainingGoals", JSON.stringify(existing))
+
+  return newGoal
 }
 
-// Get training goals for a user
 export async function getTrainingGoals(userId: string) {
-  const goals = await db.trainingGoal.findMany({
-    where: {
-      userId,
-    },
-    orderBy: {
-      targetDate: "asc",
-    },
-  })
-
-  return goals.map((goal) => ({
-    id: goal.id,
-    userId: goal.userId,
-    goalType: goal.goalType,
-    description: goal.description,
-    targetValue: goal.targetValue,
-    currentValue: goal.currentValue,
-    targetDate: goal.targetDate.toISOString(),
-    completed: goal.completed,
-  }))
+  const allGoals = JSON.parse(localStorage.getItem("trainingGoals") || "[]")
+  return allGoals
+    .filter((goal: any) => goal.userId === userId)
+    .sort((a: any, b: any) => new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime())
 }

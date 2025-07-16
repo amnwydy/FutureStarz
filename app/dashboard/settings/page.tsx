@@ -1,28 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, AlertCircle } from "lucide-react"
+import { AlertTriangle, Settings, Trash2 } from "lucide-react"
 import DashboardHeader from "@/components/dashboard-header"
-import { getCurrentUser } from "@/lib/auth"
+import { getCurrentUser, logoutUser } from "@/lib/auth"
 
 export default function SettingsPage() {
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const [emailNotifications, setEmailNotifications] = useState(true)
-  const [darkMode, setDarkMode] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const checkUser = async () => {
       try {
         const currentUser = await getCurrentUser()
         if (!currentUser) {
@@ -30,17 +23,6 @@ export default function SettingsPage() {
           return
         }
         setUser(currentUser)
-
-        // Check if dark mode is enabled in localStorage
-        const isDarkMode = localStorage.getItem("darkMode") === "true"
-        setDarkMode(isDarkMode)
-
-        // Apply dark mode if enabled
-        if (isDarkMode) {
-          document.documentElement.classList.add("dark")
-        } else {
-          document.documentElement.classList.remove("dark")
-        }
       } catch (error) {
         router.push("/login")
       } finally {
@@ -48,39 +30,26 @@ export default function SettingsPage() {
       }
     }
 
-    fetchUser()
+    checkUser()
   }, [router])
 
-  const handleSaveSettings = async () => {
-    setSaving(true)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      // Save dark mode preference to localStorage
-      localStorage.setItem("darkMode", darkMode.toString())
-
-      // Apply dark mode if enabled
-      if (darkMode) {
-        document.documentElement.classList.add("dark")
-      } else {
-        document.documentElement.classList.remove("dark")
-      }
-
-      // In a real app, you would save email notification preferences to the database
-
-      setSuccess("Settings saved successfully")
-    } catch (error: any) {
-      setError(error.message || "Failed to save settings")
-    } finally {
-      setSaving(false)
+  const handleClearData = () => {
+    if (confirm("Are you sure you want to clear all your data? This cannot be undone.")) {
+      localStorage.clear()
+      alert("All data has been cleared!")
+      router.push("/")
     }
+  }
+
+  const handleLogout = async () => {
+    await logoutUser()
+    router.push("/")
   }
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="text-center">Loading...</div>
       </div>
     )
   }
@@ -89,60 +58,84 @@ export default function SettingsPage() {
     <div className="flex min-h-screen flex-col">
       <DashboardHeader user={user} />
       <main className="flex-1 container py-6 px-4 md:px-6">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="flex items-center gap-2">
+            <Settings className="h-6 w-6" />
+            <h1 className="text-2xl font-bold">Settings</h1>
+          </div>
+
           <Card>
             <CardHeader>
-              <CardTitle>Application Settings</CardTitle>
-              <CardDescription>Manage your application preferences</CardDescription>
+              <CardTitle>Account Actions</CardTitle>
+              <CardDescription>Manage your account and data</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              {success && (
-                <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
-                  <AlertDescription>{success}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="dark-mode">Dark Mode</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable dark mode for a better viewing experience at night
-                  </p>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h3 className="font-medium">Sign Out</h3>
+                  <p className="text-sm text-gray-500">Sign out of your account</p>
                 </div>
-                <Switch id="dark-mode" checked={darkMode} onCheckedChange={setDarkMode} />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="email-notifications">Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receive email notifications about your progress and goals
-                  </p>
-                </div>
-                <Switch id="email-notifications" checked={emailNotifications} onCheckedChange={setEmailNotifications} />
+                <Button variant="outline" onClick={handleLogout}>
+                  Sign Out
+                </Button>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => router.push("/dashboard")}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveSettings} disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Settings"
-                )}
-              </Button>
-            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-red-600">Danger Zone</CardTitle>
+              <CardDescription>Irreversible actions that will affect your data</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  The following actions cannot be undone. Please proceed with caution.
+                </AlertDescription>
+              </Alert>
+
+              <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50">
+                <div>
+                  <h3 className="font-medium text-red-900">Clear All Data</h3>
+                  <p className="text-sm text-red-700">
+                    Permanently delete all your basketball stats, strength training data, and account information
+                  </p>
+                </div>
+                <Button variant="destructive" onClick={handleClearData}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear Data
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Data Information</CardTitle>
+              <CardDescription>How your data is stored and managed</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <h3 className="font-medium text-blue-900 mb-2">Local Storage</h3>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• All data is stored locally in your browser</li>
+                  <li>• No data is sent to external servers</li>
+                  <li>• Clearing browser data will delete everything</li>
+                  <li>• Data is not synced across devices</li>
+                </ul>
+              </div>
+
+              <div className="p-4 bg-green-50 rounded-lg">
+                <h3 className="font-medium text-green-900 mb-2">Privacy</h3>
+                <ul className="text-sm text-green-800 space-y-1">
+                  <li>• Your PIN is stored locally and never transmitted</li>
+                  <li>• Only you have access to edit your data</li>
+                  <li>• Others can view your stats by knowing your name</li>
+                  <li>• No tracking or analytics are collected</li>
+                </ul>
+              </div>
+            </CardContent>
           </Card>
         </div>
       </main>

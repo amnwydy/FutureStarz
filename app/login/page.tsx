@@ -2,54 +2,68 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import Link from "next/link"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { BarChart3, AlertCircle } from "lucide-react"
-import { loginUser } from "@/lib/auth"
+import { AlertCircle, BarChart3 } from "lucide-react"
+import { loginWithNameAndPin, getCurrentUser } from "@/lib/auth"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [name, setName] = useState("")
+  const [pin, setPin] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkUser = async () => {
+      const user = await getCurrentUser()
+      if (user) {
+        router.push("/dashboard")
+      }
+    }
+    checkUser()
+  }, [router])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     try {
-      await loginUser(email, password)
+      await loginWithNameAndPin(name, pin)
       router.push("/dashboard")
     } catch (error: any) {
-      setError(error.message || "Failed to log in")
+      setError(error.message || "Login failed")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b">
-        <div className="container flex h-16 items-center px-4 md:px-6">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-            <BarChart3 className="h-6 w-6" />
-            <span>HoopStat Pro</span>
-          </Link>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <div className="flex justify-center items-center gap-2 mb-4">
+            <BarChart3 className="h-8 w-8 text-primary" />
+            <h1 className="text-2xl font-bold">HoopStat Pro</h1>
+          </div>
+          <h2 className="text-xl text-gray-600">Sign in to your account</h2>
+          <p className="text-sm text-gray-500 mt-2">
+            Enter your name and PIN. If you're new, we'll create an account for you!
+          </p>
         </div>
-      </header>
-      <main className="flex-1 flex items-center justify-center p-4 md:p-8">
-        <Card className="mx-auto max-w-md w-full">
+
+        <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Log in to your account</CardTitle>
-            <CardDescription>Enter your credentials to access your HoopStat Pro account</CardDescription>
+            <CardTitle>Login</CardTitle>
+            <CardDescription>Use your name and 4-digit PIN to access your basketball stats</CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
@@ -58,49 +72,48 @@ export default function LoginPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <form onSubmit={handleLogin} className="space-y-4">
+
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="name">Your Name</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="name"
+                  type="text"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   required
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="pin">PIN</Label>
                 <Input
-                  id="password"
+                  id="pin"
                   type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your 4-digit PIN"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value)}
+                  maxLength={4}
+                  pattern="[0-9]{4}"
                   required
                 />
-                <div className="text-right">
-                  <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                    Forgot password?
-                  </Link>
-                </div>
+                <p className="text-xs text-gray-500">New users: Choose a 4-digit PIN to protect your data</p>
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Logging in..." : "Log In"}
+
+              <Button type="submit" className="w-full" disabled={loading || pin.length !== 4}>
+                {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <div className="text-sm">
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="text-primary hover:underline">
-                Sign up
+
+            <div className="mt-6 text-center">
+              <Link href="/" className="text-sm text-primary hover:underline">
+                Back to Home
               </Link>
             </div>
-          </CardFooter>
+          </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   )
 }

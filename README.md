@@ -1,96 +1,114 @@
-# Basketball Training Progress Tracker
+# HoopStat Pro - Basketball Training Tracker
 
-A full-stack web application for tracking basketball and strength training progress with AI-powered analysis and personalized feedback.
+A simple, free basketball and strength training tracker with AI-powered insights.
 
 ## Features
 
-- User authentication with secure JWT tokens
-- Basketball stats tracking (shooting percentages, points, rebounds, etc.)
-- Strength training logs (weight, bench press, squat, deadlift)
-- Progress visualization with charts
-- AI-powered analysis and comparisons to NBA players
-- Personalized training goals and recommendations
-- Responsive design for mobile and desktop
+- **Simple Authentication**: Just enter your name and a 4-digit PIN
+- **Basketball Stats Tracking**: Field goal %, 3-point %, free throws, points, rebounds, assists, steals, blocks, vertical jump
+- **Strength Training Logs**: Body weight, bench press, squat, deadlift, workout notes
+- **Progress Charts**: Visual tracking of your improvement over time
+- **AI Analysis**: Get insights and comparisons to help improve your game
+- **100% Free**: No subscriptions, no limits, no credit card required
 
-## Tech Stack
+## How It Works
 
-- **Frontend**: Next.js, React, Tailwind CSS, shadcn/ui
-- **Backend**: Next.js API routes
-- **Database**: SQLite with Prisma ORM
-- **Authentication**: Custom JWT-based auth with HTTP-only cookies
-- **AI**: OpenAI integration via AI SDK
+1. **Login/Signup**: Enter your name and choose a 4-digit PIN
+2. **View Stats**: Anyone can search by name to view stats (read-only)
+3. **Edit Data**: Only you can add/edit data using your PIN
+4. **Track Progress**: View charts and AI analysis of your performance
+
+## Data Storage
+
+- All data is stored locally in your browser (localStorage)
+- No external servers or databases required
+- Your PIN protects editing access
+- Data is not synced across devices
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm/yarn/pnpm
+- Node.js 18+ 
+- npm or yarn
 
 ### Installation
 
-1. Clone the repository:
-   \`\`\`bash
-   git clone https://github.com/yourusername/basketball-tracker.git
-   cd basketball-tracker
-   \`\`\`
+1. Clone the repository
+\`\`\`bash
+git clone <repository-url>
+cd basketball-tracker
+\`\`\`
 
-2. Install dependencies:
-   \`\`\`bash
-   npm install
-   # or
-   yarn install
-   # or
-   pnpm install
-   \`\`\`
+2. Install dependencies
+\`\`\`bash
+npm install
+\`\`\`
 
-3. Set up the database and seed with demo data:
-   \`\`\`bash
-   npm run setup
-   # or
-   yarn setup
-   # or
-   pnpm setup
-   \`\`\`
+3. Run the development server
+\`\`\`bash
+npm run dev
+\`\`\`
 
-4. Start the development server:
-   \`\`\`bash
-   npm run dev
-   # or
-   yarn dev
-   # or
-   pnpm dev
-   \`\`\`
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+### Building for Production
 
-### Demo Account
-
-After running the setup script, you can log in with these credentials:
-- Email: demo@example.com
-- Password: password123
+\`\`\`bash
+npm run build
+npm start
+\`\`\`
 
 ## Deployment
 
-### Deploying to Vercel
+This app can be deployed to any static hosting service since it uses localStorage:
 
-1. Push your code to a GitHub repository.
+- **Vercel**: Connect your GitHub repo and deploy automatically
+- **Netlify**: Drag and drop the build folder or connect via Git
+- **GitHub Pages**: Build and deploy the static files
+- **Any web server**: Upload the build files to your hosting provider
 
-2. Connect your repository to Vercel.
+### Environment Variables
 
-3. Add the following environment variable in the Vercel dashboard:
-   - `JWT_SECRET`: A strong random string for JWT token signing
+No environment variables are required since the app uses localStorage.
 
-4. Deploy your application.
+## Technology Stack
 
-## Security Considerations
+- **Framework**: Next.js 14 with App Router
+- **Styling**: Tailwind CSS + shadcn/ui components
+- **Charts**: Recharts
+- **Icons**: Lucide React
+- **Storage**: Browser localStorage
+- **Authentication**: Simple name + PIN system
 
-For production use:
-- Change the JWT_SECRET to a strong random string
-- Implement proper password hashing with bcrypt
-- Set up a more robust database like PostgreSQL
-- Enable HTTPS
-- Implement rate limiting for API routes
+## Project Structure
+
+\`\`\`
+├── app/                    # Next.js app directory
+│   ├── dashboard/         # Dashboard pages
+│   ├── login/            # Login page
+│   └── page.tsx          # Landing page
+├── components/           # React components
+│   ├── ui/              # shadcn/ui components
+│   └── ...              # Custom components
+├── lib/                 # Utility functions
+│   ├── auth.ts         # Authentication logic
+│   └── data.ts         # Data management
+└── public/             # Static assets
+\`\`\`
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is open source and available under the MIT License.
+
+## Support
+
+For questions or issues, please open a GitHub issue or contact the development team.

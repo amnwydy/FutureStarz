@@ -6,10 +6,10 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { useToast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle, CheckCircle } from "lucide-react"
 import { saveBasketballStats } from "@/lib/data"
+import { verifyPin } from "@/lib/auth"
 
 interface BasketballStatsFormProps {
   userId: string
@@ -17,168 +17,254 @@ interface BasketballStatsFormProps {
 
 export default function BasketballStatsForm({ userId }: BasketballStatsFormProps) {
   const [loading, setLoading] = useState(false)
-  const [fieldGoalPercentage, setFieldGoalPercentage] = useState(50)
-  const [threePointPercentage, setThreePointPercentage] = useState(35)
-  const [freeThrowPercentage, setFreeThrowPercentage] = useState(70)
-  const [points, setPoints] = useState("")
-  const [rebounds, setRebounds] = useState("")
-  const [assists, setAssists] = useState("")
-  const [steals, setSteals] = useState("")
-  const [blocks, setBlocks] = useState("")
-  const [verticalJump, setVerticalJump] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [showPinPrompt, setShowPinPrompt] = useState(false)
+  const [pin, setPin] = useState("")
 
-  const { toast } = useToast()
+  const [formData, setFormData] = useState({
+    fieldGoalPercentage: "",
+    threePointPercentage: "",
+    freeThrowPercentage: "",
+    points: "",
+    rebounds: "",
+    assists: "",
+    steals: "",
+    blocks: "",
+    verticalJump: "",
+  })
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setShowPinPrompt(true)
+  }
+
+  const handlePinSubmit = async () => {
     setLoading(true)
+    setError(null)
+    setSuccess(null)
 
     try {
+      const isValidPin = await verifyPin(userId, pin)
+      if (!isValidPin) {
+        throw new Error("Incorrect PIN")
+      }
+
       await saveBasketballStats({
         userId,
         date: new Date().toISOString(),
-        fieldGoalPercentage,
-        threePointPercentage,
-        freeThrowPercentage,
-        points: Number.parseInt(points),
-        rebounds: Number.parseInt(rebounds),
-        assists: Number.parseInt(assists),
-        steals: Number.parseInt(steals),
-        blocks: Number.parseInt(blocks),
-        verticalJump: Number.parseFloat(verticalJump),
+        fieldGoalPercentage: Number.parseInt(formData.fieldGoalPercentage) || 0,
+        threePointPercentage: Number.parseInt(formData.threePointPercentage) || 0,
+        freeThrowPercentage: Number.parseInt(formData.freeThrowPercentage) || 0,
+        points: Number.parseInt(formData.points) || 0,
+        rebounds: Number.parseInt(formData.rebounds) || 0,
+        assists: Number.parseInt(formData.assists) || 0,
+        steals: Number.parseInt(formData.steals) || 0,
+        blocks: Number.parseInt(formData.blocks) || 0,
+        verticalJump: Number.parseFloat(formData.verticalJump) || 0,
       })
 
-      toast({
-        title: "Stats saved",
-        description: "Your basketball stats have been recorded successfully.",
+      setSuccess("Basketball stats saved successfully!")
+      setFormData({
+        fieldGoalPercentage: "",
+        threePointPercentage: "",
+        freeThrowPercentage: "",
+        points: "",
+        rebounds: "",
+        assists: "",
+        steals: "",
+        blocks: "",
+        verticalJump: "",
       })
-
-      // Reset form
-      setPoints("")
-      setRebounds("")
-      setAssists("")
-      setSteals("")
-      setBlocks("")
-      setVerticalJump("")
+      setShowPinPrompt(false)
+      setPin("")
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save stats",
-        variant: "destructive",
-      })
+      setError(error.message || "Failed to save stats")
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <div className="flex justify-between">
-          <Label htmlFor="field-goal">Field Goal %</Label>
-          <span className="text-sm">{fieldGoalPercentage}%</span>
-        </div>
-        <Slider
-          id="field-goal"
-          min={0}
-          max={100}
-          step={1}
-          value={[fieldGoalPercentage]}
-          onValueChange={(value) => setFieldGoalPercentage(value[0])}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex justify-between">
-          <Label htmlFor="three-point">Three Point %</Label>
-          <span className="text-sm">{threePointPercentage}%</span>
-        </div>
-        <Slider
-          id="three-point"
-          min={0}
-          max={100}
-          step={1}
-          value={[threePointPercentage]}
-          onValueChange={(value) => setThreePointPercentage(value[0])}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex justify-between">
-          <Label htmlFor="free-throw">Free Throw %</Label>
-          <span className="text-sm">{freeThrowPercentage}%</span>
-        </div>
-        <Slider
-          id="free-throw"
-          min={0}
-          max={100}
-          step={1}
-          value={[freeThrowPercentage]}
-          onValueChange={(value) => setFreeThrowPercentage(value[0])}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="points">Points</Label>
-          <Input id="points" type="number" placeholder="0" value={points} onChange={(e) => setPoints(e.target.value)} />
+  if (showPinPrompt) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center">
+          <h3 className="text-lg font-medium">Enter PIN to Save</h3>
+          <p className="text-sm text-gray-500">Enter your 4-digit PIN to save your stats</p>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="rebounds">Rebounds</Label>
-          <Input
-            id="rebounds"
-            type="number"
-            placeholder="0"
-            value={rebounds}
-            onChange={(e) => setRebounds(e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="assists">Assists</Label>
-          <Input
-            id="assists"
-            type="number"
-            placeholder="0"
-            value={assists}
-            onChange={(e) => setAssists(e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="steals">Steals</Label>
-          <Input id="steals" type="number" placeholder="0" value={steals} onChange={(e) => setSteals(e.target.value)} />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="blocks">Blocks</Label>
-          <Input id="blocks" type="number" placeholder="0" value={blocks} onChange={(e) => setBlocks(e.target.value)} />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="vertical">Vertical Jump (inches)</Label>
-          <Input
-            id="vertical"
-            type="number"
-            step="0.1"
-            placeholder="0.0"
-            value={verticalJump}
-            onChange={(e) => setVerticalJump(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          "Save Basketball Stats"
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
-      </Button>
-    </form>
+
+        <div className="space-y-2">
+          <Label htmlFor="pin">PIN</Label>
+          <Input
+            id="pin"
+            type="password"
+            placeholder="Enter your PIN"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            maxLength={4}
+            pattern="[0-9]{4}"
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <Button onClick={handlePinSubmit} disabled={loading || pin.length !== 4}>
+            {loading ? "Saving..." : "Save Stats"}
+          </Button>
+          <Button variant="outline" onClick={() => setShowPinPrompt(false)}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="bg-green-50 text-green-800 border-green-200">
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>{success}</AlertDescription>
+        </Alert>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="fg-percentage">Field Goal %</Label>
+            <Input
+              id="fg-percentage"
+              type="number"
+              placeholder="45"
+              value={formData.fieldGoalPercentage}
+              onChange={(e) => handleInputChange("fieldGoalPercentage", e.target.value)}
+              min="0"
+              max="100"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="three-point-percentage">3-Point %</Label>
+            <Input
+              id="three-point-percentage"
+              type="number"
+              placeholder="35"
+              value={formData.threePointPercentage}
+              onChange={(e) => handleInputChange("threePointPercentage", e.target.value)}
+              min="0"
+              max="100"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="ft-percentage">Free Throw %</Label>
+            <Input
+              id="ft-percentage"
+              type="number"
+              placeholder="80"
+              value={formData.freeThrowPercentage}
+              onChange={(e) => handleInputChange("freeThrowPercentage", e.target.value)}
+              min="0"
+              max="100"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="points">Points</Label>
+            <Input
+              id="points"
+              type="number"
+              placeholder="25"
+              value={formData.points}
+              onChange={(e) => handleInputChange("points", e.target.value)}
+              min="0"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="rebounds">Rebounds</Label>
+            <Input
+              id="rebounds"
+              type="number"
+              placeholder="8"
+              value={formData.rebounds}
+              onChange={(e) => handleInputChange("rebounds", e.target.value)}
+              min="0"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="assists">Assists</Label>
+            <Input
+              id="assists"
+              type="number"
+              placeholder="5"
+              value={formData.assists}
+              onChange={(e) => handleInputChange("assists", e.target.value)}
+              min="0"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="steals">Steals</Label>
+            <Input
+              id="steals"
+              type="number"
+              placeholder="2"
+              value={formData.steals}
+              onChange={(e) => handleInputChange("steals", e.target.value)}
+              min="0"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="blocks">Blocks</Label>
+            <Input
+              id="blocks"
+              type="number"
+              placeholder="1"
+              value={formData.blocks}
+              onChange={(e) => handleInputChange("blocks", e.target.value)}
+              min="0"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="vertical-jump">Vertical (in)</Label>
+            <Input
+              id="vertical-jump"
+              type="number"
+              step="0.1"
+              placeholder="28.5"
+              value={formData.verticalJump}
+              onChange={(e) => handleInputChange("verticalJump", e.target.value)}
+              min="0"
+            />
+          </div>
+        </div>
+
+        <Button type="submit" className="w-full">
+          Save Basketball Stats
+        </Button>
+      </form>
+    </div>
   )
 }
