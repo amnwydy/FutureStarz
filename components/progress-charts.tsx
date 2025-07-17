@@ -1,175 +1,425 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-} from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getBasketballStats, getStrengthTraining } from "@/lib/data"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from "recharts"
+import { getBasketballStats, getFootballStats, getSoccerStats, getStrengthStats } from "@/lib/data"
 
 interface ProgressChartsProps {
-  userId: string
+  userName: string
+  sport: "basketball" | "football" | "soccer"
+  showStrength?: boolean
+  showAll?: boolean
 }
 
-export default function ProgressCharts({ userId }: ProgressChartsProps) {
-  const [basketballData, setBasketballData] = useState<any[]>([])
+export function ProgressCharts({ userName, sport, showStrength = false, showAll = false }: ProgressChartsProps) {
+  const [sportData, setSportData] = useState<any[]>([])
   const [strengthData, setStrengthData] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [basketball, strength] = await Promise.all([getBasketballStats(userId), getStrengthTraining(userId)])
+    // Load sport-specific data
+    let data: any[] = []
+    switch (sport) {
+      case "basketball":
+        data = getBasketballStats(userName)
+        break
+      case "football":
+        data = getFootballStats(userName)
+        break
+      case "soccer":
+        data = getSoccerStats(userName)
+        break
+    }
+    setSportData(data.slice(-10)) // Last 10 entries
 
-        // Format data for charts
-        const formattedBasketball = basketball
-          .map((stat, index) => ({
-            session: `Session ${basketball.length - index}`,
-            date: new Date(stat.date).toLocaleDateString(),
-            fieldGoal: stat.fieldGoalPercentage,
-            threePoint: stat.threePointPercentage,
-            freeThrow: stat.freeThrowPercentage,
-            points: stat.points,
-            rebounds: stat.rebounds,
-            assists: stat.assists,
-            verticalJump: stat.verticalJump,
-          }))
-          .reverse()
+    // Load strength data
+    const strength = getStrengthStats(userName)
+    setStrengthData(strength.slice(-10)) // Last 10 entries
+  }, [userName, sport])
 
-        const formattedStrength = strength
-          .map((training, index) => ({
-            session: `Session ${strength.length - index}`,
-            date: new Date(training.date).toLocaleDateString(),
-            weight: training.weight,
-            benchPress: training.benchPress,
-            squat: training.squat,
-            deadlift: training.deadlift,
-          }))
-          .reverse()
-
-        setBasketballData(formattedBasketball)
-        setStrengthData(formattedStrength)
-      } catch (error) {
-        console.error("Error loading chart data:", error)
-      } finally {
-        setLoading(false)
-      }
+  const getSportCharts = () => {
+    if (sportData.length === 0) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>No Data Yet</CardTitle>
+            <CardDescription>Start logging your {sport} stats to see progress charts</CardDescription>
+          </CardHeader>
+        </Card>
+      )
     }
 
-    loadData()
-  }, [userId])
+    switch (sport) {
+      case "basketball":
+        return (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Shooting Performance</CardTitle>
+                <CardDescription>Field goal and 3-point percentages over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  config={{
+                    fieldGoalPct: {
+                      label: "Field Goal %",
+                      color: "hsl(var(--chart-1))",
+                    },
+                    threePointPct: {
+                      label: "3-Point %",
+                      color: "hsl(var(--chart-2))",
+                    },
+                  }}
+                  className="h-[300px]"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={sportData.map((stat) => ({
+                        date: new Date(stat.date).toLocaleDateString(),
+                        fieldGoalPct:
+                          stat.fieldGoalsAttempted > 0 ? (stat.fieldGoalsMade / stat.fieldGoalsAttempted) * 100 : 0,
+                        threePointPct:
+                          stat.threePointersAttempted > 0
+                            ? (stat.threePointersMade / stat.threePointersAttempted) * 100
+                            : 0,
+                      }))}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Line
+                        type="monotone"
+                        dataKey="fieldGoalPct"
+                        stroke="var(--color-fieldGoalPct)"
+                        name="Field Goal %"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="threePointPct"
+                        stroke="var(--color-threePointPct)"
+                        name="3-Point %"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
 
-  if (loading) {
+            <Card>
+              <CardHeader>
+                <CardTitle>Game Stats</CardTitle>
+                <CardDescription>Points, rebounds, and assists per game</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  config={{
+                    points: {
+                      label: "Points",
+                      color: "hsl(var(--chart-1))",
+                    },
+                    rebounds: {
+                      label: "Rebounds",
+                      color: "hsl(var(--chart-2))",
+                    },
+                    assists: {
+                      label: "Assists",
+                      color: "hsl(var(--chart-3))",
+                    },
+                  }}
+                  className="h-[300px]"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={sportData.map((stat) => ({
+                        date: new Date(stat.date).toLocaleDateString(),
+                        points: stat.points,
+                        rebounds: stat.rebounds,
+                        assists: stat.assists,
+                      }))}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="points" fill="var(--color-points)" name="Points" />
+                      <Bar dataKey="rebounds" fill="var(--color-rebounds)" name="Rebounds" />
+                      <Bar dataKey="assists" fill="var(--color-assists)" name="Assists" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </>
+        )
+
+      case "football":
+        return (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Passing Performance</CardTitle>
+                <CardDescription>Passing yards and completion percentage</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  config={{
+                    passingYards: {
+                      label: "Passing Yards",
+                      color: "hsl(var(--chart-1))",
+                    },
+                    completionPct: {
+                      label: "Completion %",
+                      color: "hsl(var(--chart-2))",
+                    },
+                  }}
+                  className="h-[300px]"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={sportData.map((stat) => ({
+                        date: new Date(stat.date).toLocaleDateString(),
+                        passingYards: stat.passingYards,
+                        completionPct: stat.attempts > 0 ? (stat.completions / stat.attempts) * 100 : 0,
+                      }))}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Line
+                        type="monotone"
+                        dataKey="passingYards"
+                        stroke="var(--color-passingYards)"
+                        name="Passing Yards"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="completionPct"
+                        stroke="var(--color-completionPct)"
+                        name="Completion %"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Offensive Stats</CardTitle>
+                <CardDescription>Rushing yards and touchdowns</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  config={{
+                    rushingYards: {
+                      label: "Rushing Yards",
+                      color: "hsl(var(--chart-1))",
+                    },
+                    totalTouchdowns: {
+                      label: "Total TDs",
+                      color: "hsl(var(--chart-2))",
+                    },
+                  }}
+                  className="h-[300px]"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={sportData.map((stat) => ({
+                        date: new Date(stat.date).toLocaleDateString(),
+                        rushingYards: stat.rushingYards,
+                        totalTouchdowns: stat.passingTouchdowns + stat.rushingTouchdowns,
+                      }))}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="rushingYards" fill="var(--color-rushingYards)" name="Rushing Yards" />
+                      <Bar dataKey="totalTouchdowns" fill="var(--color-totalTouchdowns)" name="Total TDs" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </>
+        )
+
+      case "soccer":
+        return (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Offensive Performance</CardTitle>
+                <CardDescription>Goals, assists, and shot accuracy</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  config={{
+                    goals: {
+                      label: "Goals",
+                      color: "hsl(var(--chart-1))",
+                    },
+                    assists: {
+                      label: "Assists",
+                      color: "hsl(var(--chart-2))",
+                    },
+                    shotAccuracy: {
+                      label: "Shot Accuracy %",
+                      color: "hsl(var(--chart-3))",
+                    },
+                  }}
+                  className="h-[300px]"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={sportData.map((stat) => ({
+                        date: new Date(stat.date).toLocaleDateString(),
+                        goals: stat.goals,
+                        assists: stat.assists,
+                        shotAccuracy: stat.shots > 0 ? (stat.shotsOnTarget / stat.shots) * 100 : 0,
+                      }))}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Line type="monotone" dataKey="goals" stroke="var(--color-goals)" name="Goals" />
+                      <Line type="monotone" dataKey="assists" stroke="var(--color-assists)" name="Assists" />
+                      <Line
+                        type="monotone"
+                        dataKey="shotAccuracy"
+                        stroke="var(--color-shotAccuracy)"
+                        name="Shot Accuracy %"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Passing & Defense</CardTitle>
+                <CardDescription>Pass accuracy and defensive contributions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  config={{
+                    passAccuracy: {
+                      label: "Pass Accuracy %",
+                      color: "hsl(var(--chart-1))",
+                    },
+                    tackles: {
+                      label: "Tackles",
+                      color: "hsl(var(--chart-2))",
+                    },
+                  }}
+                  className="h-[300px]"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={sportData.map((stat) => ({
+                        date: new Date(stat.date).toLocaleDateString(),
+                        passAccuracy: stat.passes > 0 ? (stat.passesCompleted / stat.passes) * 100 : 0,
+                        tackles: stat.tackles,
+                      }))}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="passAccuracy" fill="var(--color-passAccuracy)" name="Pass Accuracy %" />
+                      <Bar dataKey="tackles" fill="var(--color-tackles)" name="Tackles" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  const getStrengthCharts = () => {
+    if (strengthData.length === 0) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>No Strength Data Yet</CardTitle>
+            <CardDescription>Start logging your workouts to see strength progress</CardDescription>
+          </CardHeader>
+        </Card>
+      )
+    }
+
     return (
-      <div className="space-y-4">
-        <div className="h-64 bg-gray-100 rounded animate-pulse" />
-        <div className="h-64 bg-gray-100 rounded animate-pulse" />
+      <Card>
+        <CardHeader>
+          <CardTitle>Strength Progress</CardTitle>
+          <CardDescription>Your lifting progress over time</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer
+            config={{
+              benchPress: {
+                label: "Bench Press",
+                color: "hsl(var(--chart-1))",
+              },
+              squat: {
+                label: "Squat",
+                color: "hsl(var(--chart-2))",
+              },
+              deadlift: {
+                label: "Deadlift",
+                color: "hsl(var(--chart-3))",
+              },
+            }}
+            className="h-[300px]"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={strengthData.map((stat) => ({
+                  date: new Date(stat.date).toLocaleDateString(),
+                  benchPress: stat.benchPress,
+                  squat: stat.squat,
+                  deadlift: stat.deadlift,
+                }))}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line type="monotone" dataKey="benchPress" stroke="var(--color-benchPress)" name="Bench Press" />
+                <Line type="monotone" dataKey="squat" stroke="var(--color-squat)" name="Squat" />
+                <Line type="monotone" dataKey="deadlift" stroke="var(--color-deadlift)" name="Deadlift" />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (showAll) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-6">
+          {getSportCharts()}
+          {getStrengthCharts()}
+        </div>
       </div>
     )
   }
 
-  return (
-    <Tabs defaultValue="basketball" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="basketball">Basketball Stats</TabsTrigger>
-        <TabsTrigger value="strength">Strength Training</TabsTrigger>
-      </TabsList>
+  if (showStrength) {
+    return getStrengthCharts()
+  }
 
-      <TabsContent value="basketball" className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Shooting Percentages</CardTitle>
-              <CardDescription>Track your shooting accuracy over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={basketballData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="session" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="fieldGoal" stroke="#8884d8" name="Field Goal %" />
-                  <Line type="monotone" dataKey="threePoint" stroke="#82ca9d" name="3-Point %" />
-                  <Line type="monotone" dataKey="freeThrow" stroke="#ffc658" name="Free Throw %" />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Game Stats</CardTitle>
-              <CardDescription>Points, rebounds, and assists progression</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={basketballData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="session" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="points" fill="#8884d8" name="Points" />
-                  <Bar dataKey="rebounds" fill="#82ca9d" name="Rebounds" />
-                  <Bar dataKey="assists" fill="#ffc658" name="Assists" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {basketballData.length === 0 && (
-          <Card>
-            <CardContent className="text-center py-8">
-              <p className="text-gray-500">No basketball stats recorded yet. Start tracking your performance!</p>
-            </CardContent>
-          </Card>
-        )}
-      </TabsContent>
-
-      <TabsContent value="strength" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Strength Progress</CardTitle>
-            <CardDescription>Track your lifting progress over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={strengthData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="session" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="benchPress" stroke="#8884d8" name="Bench Press (lbs)" />
-                <Line type="monotone" dataKey="squat" stroke="#82ca9d" name="Squat (lbs)" />
-                <Line type="monotone" dataKey="deadlift" stroke="#ffc658" name="Deadlift (lbs)" />
-                <Line type="monotone" dataKey="weight" stroke="#ff7300" name="Body Weight (lbs)" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {strengthData.length === 0 && (
-          <Card>
-            <CardContent className="text-center py-8">
-              <p className="text-gray-500">No strength training data recorded yet. Start logging your workouts!</p>
-            </CardContent>
-          </Card>
-        )}
-      </TabsContent>
-    </Tabs>
-  )
+  return <div className="space-y-6">{getSportCharts()}</div>
 }

@@ -7,200 +7,145 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, CheckCircle } from "lucide-react"
-import { saveStrengthTraining } from "@/lib/data"
-import { verifyPin } from "@/lib/auth"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { addStrengthStat } from "@/lib/data"
+import { toast } from "@/hooks/use-toast"
 
 interface StrengthTrainingFormProps {
-  userId: string
+  userName: string
 }
 
-export default function StrengthTrainingForm({ userId }: StrengthTrainingFormProps) {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [showPinPrompt, setShowPinPrompt] = useState(false)
-  const [pin, setPin] = useState("")
-
+export function StrengthTrainingForm({ userName }: StrengthTrainingFormProps) {
   const [formData, setFormData] = useState({
-    weight: "",
+    date: new Date().toISOString().split("T")[0],
+    bodyWeight: "",
     benchPress: "",
     squat: "",
     deadlift: "",
-    workoutNotes: "",
+    notes: "",
   })
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const stat = {
+      date: formData.date,
+      bodyWeight: Number(formData.bodyWeight) || 0,
+      benchPress: Number(formData.benchPress) || 0,
+      squat: Number(formData.squat) || 0,
+      deadlift: Number(formData.deadlift) || 0,
+      notes: formData.notes,
+    }
+
+    addStrengthStat(userName, stat)
+
+    // Reset form
+    setFormData({
+      date: new Date().toISOString().split("T")[0],
+      bodyWeight: "",
+      benchPress: "",
+      squat: "",
+      deadlift: "",
+      notes: "",
+    })
+
+    toast({
+      title: "Workout Logged!",
+      description: "Your strength training session has been recorded.",
+    })
+  }
+
+  const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setShowPinPrompt(true)
-  }
-
-  const handlePinSubmit = async () => {
-    setLoading(true)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      const isValidPin = await verifyPin(userId, pin)
-      if (!isValidPin) {
-        throw new Error("Incorrect PIN")
-      }
-
-      await saveStrengthTraining({
-        userId,
-        date: new Date().toISOString(),
-        weight: Number.parseFloat(formData.weight) || 0,
-        benchPress: Number.parseInt(formData.benchPress) || 0,
-        squat: Number.parseInt(formData.squat) || 0,
-        deadlift: Number.parseInt(formData.deadlift) || 0,
-        workoutNotes: formData.workoutNotes,
-      })
-
-      setSuccess("Strength training data saved successfully!")
-      setFormData({
-        weight: "",
-        benchPress: "",
-        squat: "",
-        deadlift: "",
-        workoutNotes: "",
-      })
-      setShowPinPrompt(false)
-      setPin("")
-    } catch (error: any) {
-      setError(error.message || "Failed to save training data")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (showPinPrompt) {
-    return (
-      <div className="space-y-4">
-        <div className="text-center">
-          <h3 className="text-lg font-medium">Enter PIN to Save</h3>
-          <p className="text-sm text-gray-500">Enter your 4-digit PIN to save your training data</p>
-        </div>
-
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <div className="space-y-2">
-          <Label htmlFor="pin">PIN</Label>
-          <Input
-            id="pin"
-            type="password"
-            placeholder="Enter your PIN"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            maxLength={4}
-            pattern="[0-9]{4}"
-          />
-        </div>
-
-        <div className="flex gap-2">
-          <Button onClick={handlePinSubmit} disabled={loading || pin.length !== 4}>
-            {loading ? "Saving..." : "Save Training Data"}
-          </Button>
-          <Button variant="outline" onClick={() => setShowPinPrompt(false)}>
-            Cancel
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-4">
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {success && (
-        <Alert className="bg-green-50 text-green-800 border-green-200">
-          <CheckCircle className="h-4 w-4" />
-          <AlertDescription>{success}</AlertDescription>
-        </Alert>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+    <Card>
+      <CardHeader>
+        <CardTitle>Strength Training</CardTitle>
+        <CardDescription>Log your gym workout and strength gains</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="weight">Body Weight (lbs)</Label>
+            <Label htmlFor="date">Date</Label>
             <Input
-              id="weight"
+              id="date"
+              type="date"
+              value={formData.date}
+              onChange={(e) => handleChange("date", e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="bodyWeight">Body Weight (lbs)</Label>
+            <Input
+              id="bodyWeight"
               type="number"
+              min="0"
               step="0.1"
-              placeholder="180"
-              value={formData.weight}
-              onChange={(e) => handleInputChange("weight", e.target.value)}
-              min="0"
+              value={formData.bodyWeight}
+              onChange={(e) => handleChange("bodyWeight", e.target.value)}
+              placeholder="0"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="bench-press">Bench Press (lbs)</Label>
-            <Input
-              id="bench-press"
-              type="number"
-              placeholder="225"
-              value={formData.benchPress}
-              onChange={(e) => handleInputChange("benchPress", e.target.value)}
-              min="0"
-            />
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="benchPress">Bench Press (lbs)</Label>
+              <Input
+                id="benchPress"
+                type="number"
+                min="0"
+                step="5"
+                value={formData.benchPress}
+                onChange={(e) => handleChange("benchPress", e.target.value)}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="squat">Squat (lbs)</Label>
+              <Input
+                id="squat"
+                type="number"
+                min="0"
+                step="5"
+                value={formData.squat}
+                onChange={(e) => handleChange("squat", e.target.value)}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deadlift">Deadlift (lbs)</Label>
+              <Input
+                id="deadlift"
+                type="number"
+                min="0"
+                step="5"
+                value={formData.deadlift}
+                onChange={(e) => handleChange("deadlift", e.target.value)}
+                placeholder="0"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="squat">Squat (lbs)</Label>
-            <Input
-              id="squat"
-              type="number"
-              placeholder="315"
-              value={formData.squat}
-              onChange={(e) => handleInputChange("squat", e.target.value)}
-              min="0"
+            <Label htmlFor="notes">Workout Notes</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => handleChange("notes", e.target.value)}
+              placeholder="How did the workout feel? Any PRs or notes..."
+              rows={3}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="deadlift">Deadlift (lbs)</Label>
-            <Input
-              id="deadlift"
-              type="number"
-              placeholder="405"
-              value={formData.deadlift}
-              onChange={(e) => handleInputChange("deadlift", e.target.value)}
-              min="0"
-            />
-          </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="workout-notes">Workout Notes</Label>
-          <Textarea
-            id="workout-notes"
-            placeholder="How did the workout feel? Any observations..."
-            value={formData.workoutNotes}
-            onChange={(e) => handleInputChange("workoutNotes", e.target.value)}
-            rows={3}
-          />
-        </div>
-
-        <Button type="submit" className="w-full">
-          Save Training Data
-        </Button>
-      </form>
-    </div>
+          <Button type="submit" className="w-full">
+            Log Workout
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   )
 }

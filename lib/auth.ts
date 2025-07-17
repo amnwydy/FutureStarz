@@ -1,77 +1,91 @@
-// Simple name + PIN based authentication
-export type User = {
-  id: string
+export interface User {
   name: string
+  pin: string
+  sport: "basketball" | "football" | "soccer"
+  position?: string
+  createdAt: string
 }
 
-// Simple storage for demo - in production you'd use a database
-const users = new Map<string, { name: string; pin: string }>()
-
-// Register/Login with name and PIN
-export async function loginWithNameAndPin(name: string, pin: string): Promise<User> {
-  const userId = name.toLowerCase().replace(/\s+/g, "-")
-
-  // Check if user exists
-  const existingUser = users.get(userId)
-
-  if (existingUser) {
-    // User exists, verify PIN
-    if (existingUser.pin !== pin) {
-      throw new Error("Incorrect PIN")
-    }
-  } else {
-    // New user, create account
-    users.set(userId, { name, pin })
-  }
-
-  // Store in localStorage for persistence
-  if (typeof window !== "undefined") {
-    localStorage.setItem("currentUser", JSON.stringify({ id: userId, name }))
-  }
-
-  return { id: userId, name }
-}
-
-// Get current user from localStorage
-export async function getCurrentUser(): Promise<User | null> {
+export function getCurrentUser(): User | null {
   if (typeof window === "undefined") return null
 
-  const stored = localStorage.getItem("currentUser")
-  if (!stored) return null
-
-  try {
-    return JSON.parse(stored)
-  } catch {
-    return null
-  }
+  const userData = localStorage.getItem("currentUser")
+  return userData ? JSON.parse(userData) : null
 }
 
-// Logout user
-export async function logoutUser(): Promise<void> {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("currentUser")
-  }
+export function setCurrentUser(user: User): void {
+  if (typeof window === "undefined") return
+
+  localStorage.setItem("currentUser", JSON.stringify(user))
 }
 
-// Update user profile (just name)
-export async function updateUserProfile(userId: string, name: string): Promise<User> {
-  const user = users.get(userId)
+export function logout(): void {
+  if (typeof window === "undefined") return
+
+  localStorage.removeItem("currentUser")
+}
+
+export function authenticateUser(name: string, pin: string): User | null {
+  if (typeof window === "undefined") return null
+
+  const users = getAllUsers()
+  const user = users.find((u) => u.name.toLowerCase() === name.toLowerCase() && u.pin === pin)
+
   if (user) {
-    user.name = name
-    users.set(userId, user)
+    setCurrentUser(user)
+    return user
   }
 
-  const updatedUser = { id: userId, name }
-
-  if (typeof window !== "undefined") {
-    localStorage.setItem("currentUser", JSON.stringify(updatedUser))
-  }
-
-  return updatedUser
+  return null
 }
 
-// Verify PIN for editing
-export async function verifyPin(userId: string, pin: string): Promise<boolean> {
-  const user = users.get(userId)
-  return user ? user.pin === pin : false
+export function createUser(
+  name: string,
+  pin: string,
+  sport: "basketball" | "football" | "soccer",
+  position?: string,
+): User {
+  if (typeof window === "undefined") throw new Error("Cannot create user on server")
+
+  const user: User = {
+    name,
+    pin,
+    sport,
+    position,
+    createdAt: new Date().toISOString(),
+  }
+
+  const users = getAllUsers()
+  users.push(user)
+  localStorage.setItem("users", JSON.stringify(users))
+
+  setCurrentUser(user)
+  return user
+}
+
+export function getAllUsers(): User[] {
+  if (typeof window === "undefined") return []
+
+  const usersData = localStorage.getItem("users")
+  return usersData ? JSON.parse(usersData) : []
+}
+
+export function userExists(name: string): boolean {
+  if (typeof window === "undefined") return false
+
+  const users = getAllUsers()
+  return users.some((u) => u.name.toLowerCase() === name.toLowerCase())
+}
+
+export function updateUser(updatedUser: User): void {
+  if (typeof window === "undefined") return
+
+  const users = getAllUsers()
+  const index = users.findIndex((u) => u.name.toLowerCase() === updatedUser.name.toLowerCase())
+
+  if (index !== -1) {
+    users[index] = updatedUser
+    localStorage.setItem("users", JSON.stringify(users))
+    setCurrentUser(updatedUser)
+  }
 }

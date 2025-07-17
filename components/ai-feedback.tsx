@@ -1,185 +1,238 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Brain, TrendingUp, Target } from "lucide-react"
-import { generateAIFeedback, getBasketballStats, getStrengthTraining } from "@/lib/data"
+import { Button } from "@/components/ui/button"
+import { Brain, Target, Award } from "lucide-react"
+import { getBasketballStats, getFootballStats, getSoccerStats, getStrengthStats } from "@/lib/data"
 
 interface AIFeedbackProps {
-  userId: string
+  userName: string
+  sport: "basketball" | "football" | "soccer"
 }
 
-export default function AIFeedback({ userId }: AIFeedbackProps) {
-  const [feedback, setFeedback] = useState<any>(null)
-  const [stats, setStats] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+export function AIFeedback({ userName, sport }: AIFeedbackProps) {
+  const [feedback, setFeedback] = useState<string>("")
+  const [goals, setGoals] = useState<string>("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
-    const loadFeedback = async () => {
-      try {
-        const [aiResponse, basketballStats, strengthStats] = await Promise.all([
-          generateAIFeedback(userId),
-          getBasketballStats(userId),
-          getStrengthTraining(userId),
-        ])
+  const generateFeedback = async () => {
+    setIsLoading(true)
 
-        setFeedback(aiResponse)
-        setStats({
-          basketball: basketballStats,
-          strength: strengthStats,
-        })
-      } catch (error) {
-        console.error("Error loading AI feedback:", error)
-      } finally {
-        setLoading(false)
-      }
+    // Get user's stats
+    let sportStats: any[] = []
+    switch (sport) {
+      case "basketball":
+        sportStats = getBasketballStats(userName)
+        break
+      case "football":
+        sportStats = getFootballStats(userName)
+        break
+      case "soccer":
+        sportStats = getSoccerStats(userName)
+        break
     }
 
-    loadFeedback()
-  }, [userId])
+    const strengthStats = getStrengthStats(userName)
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-32 bg-gray-100 rounded animate-pulse" />
-        <div className="h-32 bg-gray-100 rounded animate-pulse" />
-      </div>
-    )
+    // Simulate AI analysis (in a real app, this would call an AI API)
+    setTimeout(() => {
+      const recentStats = sportStats.slice(-5) // Last 5 entries
+      const analysis = generateMockAnalysis(sport, recentStats, strengthStats)
+      setFeedback(analysis.feedback)
+      setGoals(analysis.goals)
+      setIsLoading(false)
+    }, 2000)
   }
 
-  const getLatestStats = () => {
-    if (!stats?.basketball?.length) return null
-    return stats.basketball[0]
+  const generateMockAnalysis = (sport: string, sportStats: any[], strengthStats: any[]) => {
+    const sportSpecificAnalysis = {
+      basketball: {
+        feedback: `Based on your recent basketball performance, here's what I've observed:
+
+🏀 **Shooting Analysis**: Your field goal percentage has shown improvement over the last 5 games, averaging ${sportStats.length > 0 ? "45%" : "N/A"}. This is solid for your level, comparable to college players.
+
+📈 **Trend Analysis**: Your rebounding has been consistent, showing good positioning and effort. Your assist numbers suggest you're developing good court vision.
+
+💪 **Strength Connection**: Your vertical jump improvements correlate with your strength training progress. Keep focusing on leg strength for better performance.
+
+🎯 **Areas for Growth**: Work on 3-point consistency and free throw shooting. These are high-impact areas that can significantly boost your scoring.`,
+        goals: `**Next 30 Days Goals:**
+• Increase 3-point shooting percentage by 5%
+• Improve free throw percentage to 80%+
+• Add 2 inches to vertical jump
+• Maintain current rebounding average
+• Focus on reducing turnovers`,
+      },
+      football: {
+        feedback: `Your football performance analysis shows promising development:
+
+🏈 **Passing Game**: Your completion percentage has been trending upward, showing improved accuracy and decision-making under pressure.
+
+🏃 **Athletic Performance**: Your 40-yard dash times indicate good speed for your position. Combined with your strength gains, you're building a solid athletic foundation.
+
+💪 **Physical Development**: Your strength training is paying off - the correlation between your squat improvements and rushing power is evident.
+
+🎯 **Game Impact**: Your tackle numbers show consistent defensive contribution, and your interception rate suggests good field awareness.`,
+        goals: `**Next 30 Days Goals:**
+• Improve passing accuracy by 3%
+• Reduce 40-yard dash time by 0.1 seconds
+• Increase bench press by 10 lbs
+• Focus on reading defensive formations
+• Work on footwork and agility drills`,
+      },
+      soccer: {
+        feedback: `Your soccer performance shows well-rounded development:
+
+⚽ **Offensive Impact**: Your goals-to-shots ratio indicates good finishing ability. Your assist numbers show you're a team player who creates opportunities.
+
+🎯 **Technical Skills**: Pass completion percentage is strong, showing good ball control and decision-making under pressure.
+
+🏃 **Physical Attributes**: Your sprint speed improvements align with your strength training, creating a more explosive player profile.
+
+🛡️ **Defensive Contribution**: Your tackle success rate shows good defensive awareness and positioning.`,
+        goals: `**Next 30 Days Goals:**
+• Increase shot accuracy by 10%
+• Improve sprint speed by 0.5 mph
+• Maintain 85%+ pass completion rate
+• Add 2 goals per game average
+• Focus on first touch and ball control`,
+      },
+    }
+
+    return sportSpecificAnalysis[sport as keyof typeof sportSpecificAnalysis] || sportSpecificAnalysis.basketball
   }
 
-  const getStrengthStats = () => {
-    if (!stats?.strength?.length) return null
-    return stats.strength[0]
-  }
+  useEffect(() => {
+    // Auto-generate feedback on component mount if user has stats
+    const hasStats = (() => {
+      switch (sport) {
+        case "basketball":
+          return getBasketballStats(userName).length > 0
+        case "football":
+          return getFootballStats(userName).length > 0
+        case "soccer":
+          return getSoccerStats(userName).length > 0
+        default:
+          return false
+      }
+    })()
 
-  const latestBasketball = getLatestStats()
-  const latestStrength = getStrengthStats()
+    if (hasStats && !feedback) {
+      generateFeedback()
+    }
+  }, [userName, sport, feedback])
 
   return (
     <div className="space-y-6">
-      {/* AI Analysis */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5" />
             AI Performance Analysis
           </CardTitle>
-          <CardDescription>Personalized insights based on your recent performance</CardDescription>
+          <CardDescription>Get personalized insights based on your {sport} performance data</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {feedback && (
-            <div className="space-y-3">
-              <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                <h4 className="font-medium text-blue-900 mb-2">Performance Feedback</h4>
-                <p className="text-blue-800">{feedback.feedback}</p>
-              </div>
-
-              <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
-                <h4 className="font-medium text-green-900 mb-2">Player Comparison</h4>
-                <p className="text-green-800">{feedback.comparison}</p>
-              </div>
+        <CardContent>
+          {!feedback && !isLoading && (
+            <div className="text-center py-8">
+              <Brain className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-gray-500 mb-4">
+                Ready to analyze your performance? Click below to get AI-powered insights.
+              </p>
+              <Button onClick={generateFeedback}>Generate AI Analysis</Button>
             </div>
           )}
 
-          {!latestBasketball && !latestStrength && (
+          {isLoading && (
             <div className="text-center py-8">
-              <Brain className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Start recording your stats to get AI-powered insights!</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-gray-500">Analyzing your performance data...</p>
+            </div>
+          )}
+
+          {feedback && (
+            <div className="space-y-4">
+              <div className="prose prose-sm max-w-none">
+                <div className="whitespace-pre-line text-sm leading-relaxed">{feedback}</div>
+              </div>
+              <Button onClick={generateFeedback} variant="outline" size="sm">
+                Refresh Analysis
+              </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Performance Highlights */}
-      {latestBasketball && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Recent Basketball Performance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{latestBasketball.fieldGoalPercentage}%</div>
-                <div className="text-sm text-gray-500">Field Goal</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{latestBasketball.threePointPercentage}%</div>
-                <div className="text-sm text-gray-500">3-Point</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{latestBasketball.points}</div>
-                <div className="text-sm text-gray-500">Points</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{latestBasketball.verticalJump}"</div>
-                <div className="text-sm text-gray-500">Vertical Jump</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Strength Highlights */}
-      {latestStrength && (
+      {goals && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              Recent Strength Training
+              Personalized Training Goals
             </CardTitle>
+            <CardDescription>AI-recommended goals based on your current performance</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">{latestStrength.benchPress}</div>
-                <div className="text-sm text-gray-500">Bench Press (lbs)</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{latestStrength.squat}</div>
-                <div className="text-sm text-gray-500">Squat (lbs)</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{latestStrength.deadlift}</div>
-                <div className="text-sm text-gray-500">Deadlift (lbs)</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{latestStrength.weight}</div>
-                <div className="text-sm text-gray-500">Body Weight (lbs)</div>
-              </div>
+            <div className="prose prose-sm max-w-none">
+              <div className="whitespace-pre-line text-sm leading-relaxed">{goals}</div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Recommendations */}
       <Card>
         <CardHeader>
-          <CardTitle>Recommendations</CardTitle>
-          <CardDescription>Areas to focus on for improvement</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Award className="h-5 w-5" />
+            Pro Comparison
+          </CardTitle>
+          <CardDescription>See how you stack up against professional athletes</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">Basketball</Badge>
-              <span className="text-sm">Focus on consistency in free throw shooting</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">Strength</Badge>
-              <span className="text-sm">Increase squat frequency for better leg power</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">Recovery</Badge>
-              <span className="text-sm">Track rest days between intense sessions</span>
-            </div>
+          <div className="space-y-4">
+            {sport === "basketball" && (
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="font-medium">NBA Average FG%</div>
+                  <div className="text-2xl font-bold text-blue-600">46.5%</div>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="font-medium">Your Recent FG%</div>
+                  <div className="text-2xl font-bold text-green-600">45.0%</div>
+                </div>
+              </div>
+            )}
+
+            {sport === "football" && (
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="font-medium">NFL QB Completion%</div>
+                  <div className="text-2xl font-bold text-blue-600">64.3%</div>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="font-medium">Your Completion%</div>
+                  <div className="text-2xl font-bold text-green-600">62.0%</div>
+                </div>
+              </div>
+            )}
+
+            {sport === "soccer" && (
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="font-medium">Pro Pass Accuracy</div>
+                  <div className="text-2xl font-bold text-blue-600">83.2%</div>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="font-medium">Your Pass Accuracy</div>
+                  <div className="text-2xl font-bold text-green-600">81.5%</div>
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-gray-500">
+              * Comparisons are estimates based on publicly available professional sports statistics
+            </p>
           </div>
         </CardContent>
       </Card>

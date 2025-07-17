@@ -1,11 +1,12 @@
-// Simple localStorage-based data storage
-interface BasketballStats {
+export interface BasketballStats {
   id: string
-  userId: string
   date: string
-  fieldGoalPercentage: number
-  threePointPercentage: number
-  freeThrowPercentage: number
+  fieldGoalsMade: number
+  fieldGoalsAttempted: number
+  threePointersMade: number
+  threePointersAttempted: number
+  freeThrowsMade: number
+  freeThrowsAttempted: number
   points: number
   rebounds: number
   assists: number
@@ -14,100 +15,161 @@ interface BasketballStats {
   verticalJump: number
 }
 
-interface StrengthTraining {
+export interface FootballStats {
   id: string
-  userId: string
   date: string
-  weight: number
+  passingYards: number
+  passingTouchdowns: number
+  completions: number
+  attempts: number
+  rushingYards: number
+  rushingTouchdowns: number
+  tackles: number
+  sacks: number
+  interceptions: number
+  fortyYardDash: number
+}
+
+export interface SoccerStats {
+  id: string
+  date: string
+  goals: number
+  assists: number
+  shots: number
+  shotsOnTarget: number
+  passes: number
+  passesCompleted: number
+  tackles: number
+  saves: number
+  sprintSpeed: number
+}
+
+export interface StrengthStats {
+  id: string
+  date: string
+  bodyWeight: number
   benchPress: number
   squat: number
   deadlift: number
-  workoutNotes: string
+  notes: string
 }
 
-// Generate unique ID
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2)
+export type SportStats = BasketballStats | FootballStats | SoccerStats
+
+export function getBasketballStats(userName: string): BasketballStats[] {
+  if (typeof window === "undefined") return []
+
+  const key = `basketballStats_${userName.toLowerCase()}`
+  const data = localStorage.getItem(key)
+  return data ? JSON.parse(data) : []
 }
 
-// Basketball Stats Functions
-export async function saveBasketballStats(stats: Omit<BasketballStats, "id">) {
-  const newStats = { ...stats, id: generateId() }
+export function getFootballStats(userName: string): FootballStats[] {
+  if (typeof window === "undefined") return []
 
-  const existing = JSON.parse(localStorage.getItem("basketballStats") || "[]")
-  existing.push(newStats)
-  localStorage.setItem("basketballStats", JSON.stringify(existing))
-
-  return newStats
+  const key = `footballStats_${userName.toLowerCase()}`
+  const data = localStorage.getItem(key)
+  return data ? JSON.parse(data) : []
 }
 
-export async function getBasketballStats(userId: string) {
-  const allStats = JSON.parse(localStorage.getItem("basketballStats") || "[]")
-  return allStats
-    .filter((stat: BasketballStats) => stat.userId === userId)
-    .sort((a: BasketballStats, b: BasketballStats) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 10)
+export function getSoccerStats(userName: string): SoccerStats[] {
+  if (typeof window === "undefined") return []
+
+  const key = `soccerStats_${userName.toLowerCase()}`
+  const data = localStorage.getItem(key)
+  return data ? JSON.parse(data) : []
 }
 
-// Strength Training Functions
-export async function saveStrengthTraining(training: Omit<StrengthTraining, "id">) {
-  const newTraining = { ...training, id: generateId() }
+export function getStrengthStats(userName: string): StrengthStats[] {
+  if (typeof window === "undefined") return []
 
-  const existing = JSON.parse(localStorage.getItem("strengthTraining") || "[]")
-  existing.push(newTraining)
-  localStorage.setItem("strengthTraining", JSON.stringify(existing))
-
-  return newTraining
+  const key = `strengthStats_${userName.toLowerCase()}`
+  const data = localStorage.getItem(key)
+  return data ? JSON.parse(data) : []
 }
 
-export async function getStrengthTraining(userId: string) {
-  const allTraining = JSON.parse(localStorage.getItem("strengthTraining") || "[]")
-  return allTraining
-    .filter((training: StrengthTraining) => training.userId === userId)
-    .sort((a: StrengthTraining, b: StrengthTraining) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 10)
+export function saveBasketballStats(userName: string, stats: BasketballStats[]): void {
+  if (typeof window === "undefined") return
+
+  const key = `basketballStats_${userName.toLowerCase()}`
+  localStorage.setItem(key, JSON.stringify(stats))
 }
 
-// AI Feedback (simplified)
-export async function generateAIFeedback(userId: string) {
-  return {
-    feedback:
-      "Based on your recent performance, you're showing great improvement in your three-point shooting. Focus on maintaining your form and consistency.",
-    comparison:
-      "Your shooting style and efficiency reminds me of Klay Thompson, especially your catch-and-shoot ability.",
+export function saveFootballStats(userName: string, stats: FootballStats[]): void {
+  if (typeof window === "undefined") return
+
+  const key = `footballStats_${userName.toLowerCase()}`
+  localStorage.setItem(key, JSON.stringify(stats))
+}
+
+export function saveSoccerStats(userName: string, stats: SoccerStats[]): void {
+  if (typeof window === "undefined") return
+
+  const key = `soccerStats_${userName.toLowerCase()}`
+  localStorage.setItem(key, JSON.stringify(stats))
+}
+
+export function saveStrengthStats(userName: string, stats: StrengthStats[]): void {
+  if (typeof window === "undefined") return
+
+  const key = `strengthStats_${userName.toLowerCase()}`
+  localStorage.setItem(key, JSON.stringify(stats))
+}
+
+export function addBasketballStat(userName: string, stat: Omit<BasketballStats, "id">): void {
+  const stats = getBasketballStats(userName)
+  const newStat: BasketballStats = {
+    ...stat,
+    id: Date.now().toString(),
   }
+  stats.push(newStat)
+  saveBasketballStats(userName, stats)
 }
 
-// Training Goals
-export async function saveTrainingGoal(
-  userId: string,
-  goalType: string,
-  description: string,
-  targetValue: number,
-  currentValue: number,
-  targetDate: string,
-) {
-  const newGoal = {
-    id: generateId(),
-    userId,
-    goalType,
-    description,
-    targetValue,
-    currentValue,
-    targetDate,
-    completed: false,
+export function addFootballStat(userName: string, stat: Omit<FootballStats, "id">): void {
+  const stats = getFootballStats(userName)
+  const newStat: FootballStats = {
+    ...stat,
+    id: Date.now().toString(),
+  }
+  stats.push(newStat)
+  saveFootballStats(userName, stats)
+}
+
+export function addSoccerStat(userName: string, stat: Omit<SoccerStats, "id">): void {
+  const stats = getSoccerStats(userName)
+  const newStat: SoccerStats = {
+    ...stat,
+    id: Date.now().toString(),
+  }
+  stats.push(newStat)
+  saveSoccerStats(userName, stats)
+}
+
+export function addStrengthStat(userName: string, stat: Omit<StrengthStats, "id">): void {
+  const stats = getStrengthStats(userName)
+  const newStat: StrengthStats = {
+    ...stat,
+    id: Date.now().toString(),
+  }
+  stats.push(newStat)
+  saveStrengthStats(userName, stats)
+}
+
+export function exportUserData(userName: string): string {
+  const basketballStats = getBasketballStats(userName)
+  const footballStats = getFootballStats(userName)
+  const soccerStats = getSoccerStats(userName)
+  const strengthStats = getStrengthStats(userName)
+
+  const data = {
+    userName,
+    exportDate: new Date().toISOString(),
+    basketballStats,
+    footballStats,
+    soccerStats,
+    strengthStats,
   }
 
-  const existing = JSON.parse(localStorage.getItem("trainingGoals") || "[]")
-  existing.push(newGoal)
-  localStorage.setItem("trainingGoals", JSON.stringify(existing))
-
-  return newGoal
-}
-
-export async function getTrainingGoals(userId: string) {
-  const allGoals = JSON.parse(localStorage.getItem("trainingGoals") || "[]")
-  return allGoals
-    .filter((goal: any) => goal.userId === userId)
-    .sort((a: any, b: any) => new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime())
+  return JSON.stringify(data, null, 2)
 }
