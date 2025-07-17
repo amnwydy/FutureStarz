@@ -54,6 +54,16 @@ export interface StrengthStats {
   notes: string
 }
 
+export interface TrainingGoal {
+  id: string
+  userName: string
+  sport: string
+  goal: string
+  targetDate: string
+  completed: boolean
+  createdAt: string
+}
+
 export type SportStats = BasketballStats | FootballStats | SoccerStats
 
 export function getBasketballStats(userName: string): BasketballStats[] {
@@ -88,6 +98,18 @@ export function getStrengthStats(userName: string): StrengthStats[] {
   return data ? JSON.parse(data) : []
 }
 
+export function getStrengthTraining(userName: string): StrengthStats[] {
+  return getStrengthStats(userName)
+}
+
+export function getTrainingGoals(userName: string): TrainingGoal[] {
+  if (typeof window === "undefined") return []
+
+  const key = `trainingGoals_${userName.toLowerCase()}`
+  const data = localStorage.getItem(key)
+  return data ? JSON.parse(data) : []
+}
+
 export function saveBasketballStats(userName: string, stats: BasketballStats[]): void {
   if (typeof window === "undefined") return
 
@@ -114,6 +136,22 @@ export function saveStrengthStats(userName: string, stats: StrengthStats[]): voi
 
   const key = `strengthStats_${userName.toLowerCase()}`
   localStorage.setItem(key, JSON.stringify(stats))
+}
+
+export function saveTrainingGoal(userName: string, goal: Omit<TrainingGoal, "id" | "userName" | "createdAt">): void {
+  if (typeof window === "undefined") return
+
+  const goals = getTrainingGoals(userName)
+  const newGoal: TrainingGoal = {
+    ...goal,
+    id: Date.now().toString(),
+    userName,
+    createdAt: new Date().toISOString(),
+  }
+  goals.push(newGoal)
+
+  const key = `trainingGoals_${userName.toLowerCase()}`
+  localStorage.setItem(key, JSON.stringify(goals))
 }
 
 export function addBasketballStat(userName: string, stat: Omit<BasketballStats, "id">): void {
@@ -161,6 +199,7 @@ export function exportUserData(userName: string): string {
   const footballStats = getFootballStats(userName)
   const soccerStats = getSoccerStats(userName)
   const strengthStats = getStrengthStats(userName)
+  const trainingGoals = getTrainingGoals(userName)
 
   const data = {
     userName,
@@ -169,6 +208,7 @@ export function exportUserData(userName: string): string {
     footballStats,
     soccerStats,
     strengthStats,
+    trainingGoals,
   }
 
   return JSON.stringify(data, null, 2)

@@ -3,298 +3,273 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Trophy, ArrowLeft } from "lucide-react"
-import { authenticateUser, createUser, userExists, getAllUsers } from "@/lib/auth"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Activity, User, Trophy } from "lucide-react"
+import { authenticateUser, registerUser, userExists, getCurrentUser } from "@/lib/auth"
 
 export default function LoginPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const [name, setName] = useState("")
-  const [pin, setPin] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+
+  // Login form state
+  const [loginName, setLoginName] = useState("")
+  const [loginPin, setLoginPin] = useState("")
+
+  // Signup form state
+  const [signupName, setSignupName] = useState("")
+  const [signupPin, setSignupPin] = useState("")
+  const [confirmPin, setConfirmPin] = useState("")
   const [sport, setSport] = useState<"basketball" | "football" | "soccer">("basketball")
   const [position, setPosition] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [searchName, setSearchName] = useState("")
-  const [searchResults, setSearchResults] = useState<any[]>([])
 
   useEffect(() => {
-    const sportParam = searchParams.get("sport")
-    if (sportParam && ["basketball", "football", "soccer"].includes(sportParam)) {
-      setSport(sportParam as "basketball" | "football" | "soccer")
+    const user = getCurrentUser()
+    if (user) {
+      router.push("/dashboard")
     }
-  }, [searchParams])
+  }, [router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError("")
     setIsLoading(true)
+    setError("")
 
-    if (!name.trim() || pin.length !== 4) {
-      setError("Please enter your name and 4-digit PIN")
+    if (!loginName.trim() || !loginPin.trim()) {
+      setError("Please enter both name and PIN")
       setIsLoading(false)
       return
     }
 
-    const user = authenticateUser(name.trim(), pin)
-    if (user) {
-      router.push("/dashboard")
-    } else {
-      setError("Invalid name or PIN")
-    }
-    setIsLoading(false)
-  }
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
-
-    if (!name.trim() || pin.length !== 4) {
-      setError("Please enter your name and 4-digit PIN")
-      setIsLoading(false)
-      return
-    }
-
-    if (userExists(name.trim())) {
-      setError("Name already exists. Please choose a different name or login.")
+    if (loginPin.length !== 4 || !/^\d{4}$/.test(loginPin)) {
+      setError("PIN must be exactly 4 digits")
       setIsLoading(false)
       return
     }
 
     try {
-      createUser(name.trim(), pin, sport, position)
-      router.push("/dashboard")
+      const user = authenticateUser(loginName.trim(), loginPin)
+      if (user) {
+        router.push("/dashboard")
+      } else {
+        setError("Invalid name or PIN")
+      }
     } catch (err) {
-      setError("Failed to create account")
+      setError("Login failed. Please try again.")
     }
+
     setIsLoading(false)
   }
 
-  const handleSearch = () => {
-    if (!searchName.trim()) {
-      setSearchResults([])
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+    setSuccess("")
+
+    if (!signupName.trim() || !signupPin.trim() || !confirmPin.trim()) {
+      setError("Please fill in all required fields")
+      setIsLoading(false)
       return
     }
 
-    const users = getAllUsers()
-    const results = users.filter((user) => user.name.toLowerCase().includes(searchName.toLowerCase()))
-    setSearchResults(results)
-  }
-
-  const getPositions = (sport: string) => {
-    switch (sport) {
-      case "basketball":
-        return ["Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"]
-      case "football":
-        return [
-          "Quarterback",
-          "Running Back",
-          "Wide Receiver",
-          "Tight End",
-          "Offensive Line",
-          "Defensive Line",
-          "Linebacker",
-          "Cornerback",
-          "Safety",
-          "Kicker",
-          "Punter",
-        ]
-      case "soccer":
-        return ["Goalkeeper", "Defender", "Midfielder", "Forward", "Winger", "Striker"]
-      default:
-        return []
+    if (signupPin.length !== 4 || !/^\d{4}$/.test(signupPin)) {
+      setError("PIN must be exactly 4 digits")
+      setIsLoading(false)
+      return
     }
+
+    if (signupPin !== confirmPin) {
+      setError("PINs do not match")
+      setIsLoading(false)
+      return
+    }
+
+    if (userExists(signupName.trim())) {
+      setError("Name already taken. Please choose a different name.")
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      const user = registerUser(signupName.trim(), signupPin, sport, position.trim() || undefined)
+      setSuccess("Account created successfully! Redirecting...")
+      setTimeout(() => {
+        router.push("/dashboard")
+      }, 1500)
+    } catch (err) {
+      setError("Failed to create account. Please try again.")
+    }
+
+    setIsLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-orange-500" />
-            <span className="font-bold text-xl">Future Starz</span>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <Activity className="h-10 w-10 text-blue-600 mr-3" />
+            <h1 className="text-3xl font-bold text-gray-900">SportsPro</h1>
           </div>
+          <p className="text-gray-600">Track your athletic journey</p>
         </div>
 
-        <div className="max-w-md mx-auto">
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              <TabsTrigger value="search">Search</TabsTrigger>
-            </TabsList>
+        <Tabs defaultValue="login" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">Sign In</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="login">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Welcome Back</CardTitle>
-                  <CardDescription>Enter your name and PIN to access your stats</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="login-name">Name</Label>
-                      <Input
-                        id="login-name"
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Enter your name"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="login-pin">PIN</Label>
-                      <Input
-                        id="login-pin"
-                        type="password"
-                        value={pin}
-                        onChange={(e) => setPin(e.target.value.slice(0, 4))}
-                        placeholder="4-digit PIN"
-                        maxLength={4}
-                        required
-                      />
-                    </div>
-                    {error && <div className="text-red-500 text-sm">{error}</div>}
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? "Logging in..." : "Login"}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Create Account</CardTitle>
-                  <CardDescription>Choose your sport and create your account</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSignup} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-sport">Sport</Label>
-                      <Select
-                        value={sport}
-                        onValueChange={(value: "basketball" | "football" | "soccer") => setSport(value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your sport" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="basketball">Basketball</SelectItem>
-                          <SelectItem value="football">Football</SelectItem>
-                          <SelectItem value="soccer">Soccer</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-position">Position (Optional)</Label>
-                      <Select value={position} onValueChange={setPosition}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your position" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getPositions(sport).map((pos) => (
-                            <SelectItem key={pos} value={pos}>
-                              {pos}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-name">Name</Label>
-                      <Input
-                        id="signup-name"
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Enter your name"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-pin">Create PIN</Label>
-                      <Input
-                        id="signup-pin"
-                        type="password"
-                        value={pin}
-                        onChange={(e) => setPin(e.target.value.slice(0, 4))}
-                        placeholder="4-digit PIN"
-                        maxLength={4}
-                        required
-                      />
-                    </div>
-                    {error && <div className="text-red-500 text-sm">{error}</div>}
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? "Creating Account..." : "Create Account"}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="search">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Search Athletes</CardTitle>
-                  <CardDescription>Search for athletes to view their public stats</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex gap-2">
-                      <Input
-                        type="text"
-                        value={searchName}
-                        onChange={(e) => setSearchName(e.target.value)}
-                        placeholder="Search by name..."
-                        onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                      />
-                      <Button onClick={handleSearch}>Search</Button>
-                    </div>
-
-                    {searchResults.length > 0 && (
-                      <div className="space-y-2">
-                        <h3 className="font-semibold">Results:</h3>
-                        {searchResults.map((user, index) => (
-                          <div key={index} className="p-3 border rounded-lg">
-                            <div className="font-medium">{user.name}</div>
-                            <div className="text-sm text-gray-500">
-                              {user.sport} {user.position && `• ${user.position}`}
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              Member since {new Date(user.createdAt).toLocaleDateString()}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {searchName && searchResults.length === 0 && (
-                      <div className="text-gray-500 text-center py-4">No athletes found with that name</div>
-                    )}
+          {/* Login Tab */}
+          <TabsContent value="login">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <User className="h-5 w-5 mr-2" />
+                  Welcome Back
+                </CardTitle>
+                <CardDescription>Enter your name and PIN to access your account</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-name">Name</Label>
+                    <Input
+                      id="login-name"
+                      type="text"
+                      placeholder="Enter your name"
+                      value={loginName}
+                      onChange={(e) => setLoginName(e.target.value)}
+                      disabled={isLoading}
+                    />
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-pin">PIN</Label>
+                    <Input
+                      id="login-pin"
+                      type="password"
+                      placeholder="Enter 4-digit PIN"
+                      maxLength={4}
+                      value={loginPin}
+                      onChange={(e) => setLoginPin(e.target.value.replace(/\D/g, ""))}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Signing In..." : "Sign In"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Signup Tab */}
+          <TabsContent value="signup">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Trophy className="h-5 w-5 mr-2" />
+                  Create Account
+                </CardTitle>
+                <CardDescription>Set up your athletic tracking profile</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name">Name *</Label>
+                    <Input
+                      id="signup-name"
+                      type="text"
+                      placeholder="Enter your name"
+                      value={signupName}
+                      onChange={(e) => setSignupName(e.target.value)}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sport">Primary Sport *</Label>
+                    <Select
+                      value={sport}
+                      onValueChange={(value: "basketball" | "football" | "soccer") => setSport(value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your sport" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="basketball">Basketball</SelectItem>
+                        <SelectItem value="football">Football</SelectItem>
+                        <SelectItem value="soccer">Soccer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="position">Position (Optional)</Label>
+                    <Input
+                      id="position"
+                      type="text"
+                      placeholder="e.g., Point Guard, Quarterback, Midfielder"
+                      value={position}
+                      onChange={(e) => setPosition(e.target.value)}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-pin">Create PIN *</Label>
+                    <Input
+                      id="signup-pin"
+                      type="password"
+                      placeholder="Create 4-digit PIN"
+                      maxLength={4}
+                      value={signupPin}
+                      onChange={(e) => setSignupPin(e.target.value.replace(/\D/g, ""))}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-pin">Confirm PIN *</Label>
+                    <Input
+                      id="confirm-pin"
+                      type="password"
+                      placeholder="Confirm 4-digit PIN"
+                      maxLength={4}
+                      value={confirmPin}
+                      onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                  {success && (
+                    <Alert>
+                      <AlertDescription>{success}</AlertDescription>
+                    </Alert>
+                  )}
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Creating Account..." : "Create Account"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

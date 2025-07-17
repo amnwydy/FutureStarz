@@ -39,7 +39,7 @@ export function authenticateUser(name: string, pin: string): User | null {
   return null
 }
 
-export function createUser(
+export function registerUser(
   name: string,
   pin: string,
   sport: "basketball" | "football" | "soccer",
@@ -61,6 +61,15 @@ export function createUser(
 
   setCurrentUser(user)
   return user
+}
+
+export function createUser(
+  name: string,
+  pin: string,
+  sport: "basketball" | "football" | "soccer",
+  position?: string,
+): User {
+  return registerUser(name, pin, sport, position)
 }
 
 export function getAllUsers(): User[] {

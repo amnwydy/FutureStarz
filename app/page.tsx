@@ -1,283 +1,162 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { ArrowRight, BarChart3, Lock, Brain, Trophy, Target, Zap } from "lucide-react"
+"use client"
 
-export default function Home() {
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Activity, BarChart3, Target, TrendingUp, Award } from "lucide-react"
+import { getCurrentUser } from "@/lib/auth"
+
+export default function HomePage() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const user = getCurrentUser()
+    if (user) {
+      router.push("/dashboard")
+    } else {
+      setIsLoading(false)
+    }
+  }, [router])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="border-b">
-        <div className="container flex h-16 items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-2 font-bold text-xl">
-            <Trophy className="h-6 w-6 text-orange-500" />
-            <span>Future Starz</span>
-          </div>
-          <nav className="hidden md:flex gap-6">
-            <Link href="#sports" className="text-sm font-medium hover:underline underline-offset-4">
-              Sports
-            </Link>
-            <Link href="#features" className="text-sm font-medium hover:underline underline-offset-4">
-              Features
-            </Link>
-            <Link href="#how-it-works" className="text-sm font-medium hover:underline underline-offset-4">
-              How It Works
-            </Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="outline">Get Started</Button>
-            </Link>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Header */}
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center">
+              <Activity className="h-8 w-8 text-blue-600 mr-3" />
+              <h1 className="text-2xl font-bold text-gray-900">SportsPro Tracker</h1>
+            </div>
+            <div className="flex space-x-4">
+              <Button variant="outline" onClick={() => router.push("/login")}>
+                Sign In
+              </Button>
+              <Button onClick={() => router.push("/login")}>Get Started</Button>
+            </div>
           </div>
         </div>
       </header>
-      <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
-          <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
-              <div className="flex flex-col justify-center space-y-4">
-                <div className="space-y-2">
-                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    Track Your Athletic Journey
-                  </h1>
-                  <p className="max-w-[600px] text-gray-500 md:text-xl dark:text-gray-400">
-                    Track your basketball, football, and soccer performance with AI-powered insights. Simple, free, and
-                    designed for athletes of all levels.
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Link href="/login">
-                    <Button size="lg" className="gap-1">
-                      Start Tracking <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <Link href="#sports">
-                    <Button size="lg" variant="outline">
-                      Choose Your Sport
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-              <div className="mx-auto lg:ml-auto flex justify-center">
-                <img
-                  alt="Athletes training dashboard"
-                  className="rounded-lg object-cover shadow-xl"
-                  height="400"
-                  src="/placeholder.svg?height=400&width=600"
-                  width="600"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <section id="sports" className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Choose Your Sport</h2>
-                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  Specialized tracking for basketball, football, and soccer with sport-specific metrics and insights.
-                </p>
-              </div>
-            </div>
-            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-3 mt-8">
-              <div className="flex flex-col items-center space-y-4 rounded-lg border p-8 shadow-sm hover:shadow-md transition-shadow">
-                <img
-                  src="/placeholder.svg?height=120&width=120"
-                  alt="Basketball"
-                  className="w-20 h-20 rounded-full object-cover"
-                />
-                <h3 className="text-2xl font-bold">Basketball</h3>
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                  Track shooting percentages, points, rebounds, assists, and vertical jump progress.
-                </p>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Field Goal & 3-Point %</li>
-                  <li>• Points, Rebounds, Assists</li>
-                  <li>• Steals, Blocks, Vertical Jump</li>
-                  <li>• Compare to NBA players</li>
-                </ul>
-                <Link href="/login?sport=basketball">
-                  <Button className="w-full">Start Basketball Tracking</Button>
-                </Link>
-              </div>
-
-              <div className="flex flex-col items-center space-y-4 rounded-lg border p-8 shadow-sm hover:shadow-md transition-shadow">
-                <img
-                  src="/placeholder.svg?height=120&width=120"
-                  alt="Football"
-                  className="w-20 h-20 rounded-full object-cover"
-                />
-                <h3 className="text-2xl font-bold">Football</h3>
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                  Monitor passing, rushing, defensive stats, and combine-style measurements.
-                </p>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Passing yards & completion %</li>
-                  <li>• Rushing yards & touchdowns</li>
-                  <li>• Tackles, sacks, interceptions</li>
-                  <li>• 40-yard dash times</li>
-                </ul>
-                <Link href="/login?sport=football">
-                  <Button className="w-full">Start Football Tracking</Button>
-                </Link>
-              </div>
-
-              <div className="flex flex-col items-center space-y-4 rounded-lg border p-8 shadow-sm hover:shadow-md transition-shadow">
-                <img
-                  src="/placeholder.svg?height=120&width=120"
-                  alt="Soccer"
-                  className="w-20 h-20 rounded-full object-cover"
-                />
-                <h3 className="text-2xl font-bold">Soccer</h3>
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                  Record goals, assists, passing accuracy, and defensive contributions.
-                </p>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Goals, assists, shots</li>
-                  <li>• Pass accuracy & completion</li>
-                  <li>• Tackles, saves (goalkeepers)</li>
-                  <li>• Sprint speed tracking</li>
-                </ul>
-                <Link href="/login?sport=soccer">
-                  <Button className="w-full">Start Soccer Tracking</Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-gray-100 dark:bg-gray-800">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Key Features</h2>
-                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  Everything you need to track, analyze, and improve your athletic performance.
-                </p>
-              </div>
-            </div>
-            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8">
-              <div className="flex flex-col items-center space-y-2 rounded-lg border bg-white p-6 shadow-sm dark:bg-gray-950">
-                <BarChart3 className="h-12 w-12 text-primary" />
-                <h3 className="text-xl font-bold">Sport-Specific Tracking</h3>
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                  Customized metrics for basketball, football, and soccer with relevant performance indicators.
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 rounded-lg border bg-white p-6 shadow-sm dark:bg-gray-950">
-                <Brain className="h-12 w-12 text-primary" />
-                <h3 className="text-xl font-bold">AI Analysis</h3>
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                  Get personalized insights and comparisons to professional athletes in your sport.
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 rounded-lg border bg-white p-6 shadow-sm dark:bg-gray-950">
-                <Target className="h-12 w-12 text-primary" />
-                <h3 className="text-xl font-bold">Progress Tracking</h3>
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                  Visual charts and graphs to see your improvement over time across all metrics.
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 rounded-lg border bg-white p-6 shadow-sm dark:bg-gray-950">
-                <Lock className="h-12 w-12 text-primary" />
-                <h3 className="text-xl font-bold">Simple & Secure</h3>
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                  Just your name and PIN - no complex passwords or personal information required.
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 rounded-lg border bg-white p-6 shadow-sm dark:bg-gray-950">
-                <Zap className="h-12 w-12 text-primary" />
-                <h3 className="text-xl font-bold">Instant Access</h3>
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                  Works on any device, anywhere. No downloads or installations needed.
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 rounded-lg border bg-white p-6 shadow-sm dark:bg-gray-950">
-                <Trophy className="h-12 w-12 text-primary" />
-                <h3 className="text-xl font-bold">100% Free</h3>
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                  All features completely free forever - no trials, no limits, no credit card required.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="how-it-works" className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">How It Works</h2>
-                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  Get started in minutes and begin tracking your athletic progress today.
-                </p>
-              </div>
-            </div>
-            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-3 mt-8">
-              <div className="flex flex-col items-center space-y-2 rounded-lg border bg-white p-6 shadow-sm dark:bg-gray-950">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white">1</div>
-                <h3 className="text-xl font-bold">Choose Your Sport</h3>
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                  Select basketball, football, or soccer and create your account with just a name and PIN.
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 rounded-lg border bg-white p-6 shadow-sm dark:bg-gray-950">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white">2</div>
-                <h3 className="text-xl font-bold">Track Your Stats</h3>
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                  Log your performance after each game or practice with sport-specific metrics.
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 rounded-lg border bg-white p-6 shadow-sm dark:bg-gray-950">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white">3</div>
-                <h3 className="text-xl font-bold">See Your Progress</h3>
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                  View charts, get AI insights, and track your improvement over time.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-primary text-primary-foreground">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  Ready to Become a Future Star?
-                </h2>
-                <p className="max-w-[900px] md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Join athletes tracking their progress and reaching their potential with AI-powered insights.
-                </p>
-              </div>
-              <div className="mx-auto w-full max-w-sm space-y-2">
-                <Link href="/login">
-                  <Button size="lg" className="w-full bg-white text-primary hover:bg-gray-100">
-                    Start Tracking - 100% Free
-                  </Button>
-                </Link>
-                <p className="text-xs">No credit card required. All features free forever.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-      <footer className="border-t py-6 md:py-0">
-        <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row px-4 md:px-6">
-          <p className="text-center text-sm leading-loose text-gray-500 md:text-left dark:text-gray-400">
-            © 2025 Future Starz. All rights reserved.
+      {/* Hero Section */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-5xl font-bold text-gray-900 mb-6">Track Your Athletic Journey</h2>
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Professional-grade sports analytics for basketball, football, and soccer. Track performance, analyze
+            progress, and achieve your athletic goals with AI-powered insights.
           </p>
-          <div className="flex items-center gap-4 text-sm">
-            <Link href="#" className="text-gray-500 hover:underline underline-offset-4 dark:text-gray-400">
-              Privacy Policy
-            </Link>
-            <Link href="#" className="text-gray-500 hover:underline underline-offset-4 dark:text-gray-400">
-              Terms of Service
-            </Link>
-            <Link href="#" className="text-gray-500 hover:underline underline-offset-4 dark:text-gray-400">
-              Contact
-            </Link>
+          <div className="flex justify-center space-x-4 mb-12">
+            <Badge variant="secondary" className="px-4 py-2">
+              <Target className="h-4 w-4 mr-2" />
+              Goal Setting
+            </Badge>
+            <Badge variant="secondary" className="px-4 py-2">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Performance Analytics
+            </Badge>
+            <Badge variant="secondary" className="px-4 py-2">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Progress Tracking
+            </Badge>
           </div>
+          <Button size="lg" onClick={() => router.push("/login")} className="px-8 py-4 text-lg">
+            Start Tracking Now
+          </Button>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">Everything You Need to Excel</h3>
+            <p className="text-lg text-gray-600">Comprehensive tools for serious athletes</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card>
+              <CardHeader>
+                <BarChart3 className="h-12 w-12 text-blue-600 mb-4" />
+                <CardTitle>Multi-Sport Support</CardTitle>
+                <CardDescription>
+                  Track basketball, football, and soccer with sport-specific metrics and analytics
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li>• Basketball: FG%, 3P%, rebounds, assists</li>
+                  <li>• Football: Passing yards, touchdowns, tackles</li>
+                  <li>• Soccer: Goals, assists, pass accuracy</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <TrendingUp className="h-12 w-12 text-green-600 mb-4" />
+                <CardTitle>AI-Powered Analysis</CardTitle>
+                <CardDescription>
+                  Get personalized insights and recommendations based on your performance data
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li>• Performance trend analysis</li>
+                  <li>• Personalized training suggestions</li>
+                  <li>• Goal-oriented recommendations</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <Award className="h-12 w-12 text-purple-600 mb-4" />
+                <CardTitle>Strength Training</CardTitle>
+                <CardDescription>Track your gym progress with comprehensive strength training metrics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li>• Bench press, squat, deadlift tracking</li>
+                  <li>• Body weight monitoring</li>
+                  <li>• Workout notes and progress</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-blue-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h3 className="text-3xl font-bold text-white mb-4">Ready to Elevate Your Game?</h3>
+          <p className="text-xl text-blue-100 mb-8">Join thousands of athletes already tracking their progress</p>
+          <Button size="lg" variant="secondary" onClick={() => router.push("/login")} className="px-8 py-4 text-lg">
+            Get Started Free
+          </Button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center">
+            <Activity className="h-6 w-6 mr-2" />
+            <span className="text-lg font-semibold">SportsPro Tracker</span>
+          </div>
+          <p className="text-center text-gray-400 mt-4">© 2024 SportsPro Tracker. All rights reserved.</p>
         </div>
       </footer>
     </div>

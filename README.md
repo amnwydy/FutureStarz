@@ -1,144 +1,104 @@
-# Future Starz - Multi-Sport Training Tracker
+# SportsPro Tracker
 
-A comprehensive, free sports tracking application for basketball, football, and soccer athletes with AI-powered insights and progress analytics.
+A comprehensive sports performance tracking application for basketball, football, and soccer athletes. Track your progress, analyze performance, and achieve your athletic goals with AI-powered insights.
 
-## 🏆 Features
+## Features
 
-### Multi-Sport Support
-- **Basketball**: Field goal %, 3-point %, free throws, points, rebounds, assists, steals, blocks, vertical jump
-- **Football**: Passing yards, completion %, rushing yards, touchdowns, tackles, sacks, interceptions, 40-yard dash
-- **Soccer**: Goals, assists, shots, shot accuracy, passes, pass completion, tackles, saves, sprint speed
-
-### Core Features
-- **Simple Authentication**: Name + 4-digit PIN system
-- **Progress Tracking**: Interactive charts and visual analytics
-- **AI Analysis**: Personalized insights and professional comparisons
-- **Strength Training**: Body weight, bench press, squat, deadlift tracking
-- **Data Export**: Download your data anytime
+- **Multi-Sport Support**: Track basketball, football, and soccer with sport-specific metrics
+- **Performance Analytics**: Detailed charts and progress tracking
+- **AI-Powered Insights**: Get personalized feedback and training recommendations
+- **Strength Training**: Track gym progress with comprehensive metrics
+- **Goal Setting**: Set and track personalized training goals
+- **Data Export**: Export your data for external analysis
 - **Responsive Design**: Works on all devices
-- **100% Free**: No subscriptions, trials, or hidden costs
 
-## 🚀 Quick Start
+## Getting Started
 
 ### Prerequisites
-- Node.js 18+
+
+- Node.js 18 or later
 - npm or yarn
 
 ### Installation
+
+1. Clone the repository:
 \`\`\`bash
-git clone https://github.com/yourusername/future-starz.git
-cd future-starz
+git clone https://github.com/yourusername/sports-tracker.git
+cd sports-tracker
+\`\`\`
+
+2. Install dependencies:
+\`\`\`bash
 npm install
+\`\`\`
+
+3. Run the development server:
+\`\`\`bash
 npm run dev
 \`\`\`
 
-Open [http://localhost:3000](http://localhost:3000) to view the app.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 📱 How It Works
+## Deployment to GitHub Pages
 
-1. **Choose Your Sport**: Select basketball, football, or soccer
-2. **Create Account**: Enter your name and create a 4-digit PIN
-3. **Track Performance**: Log stats after games and practices
-4. **View Progress**: See charts, trends, and AI insights
-5. **Set Goals**: Get personalized training recommendations
+This app is configured for GitHub Pages deployment:
 
-## 🔒 Privacy & Security
+1. Update the `basePath` and `assetPrefix` in `next.config.mjs` with your repository name
+2. Push to the main branch
+3. GitHub Actions will automatically build and deploy to GitHub Pages
 
-- **Local Storage**: All data stored in your browser
-- **PIN Protection**: Only you can edit your data
-- **No Servers**: No external data transmission
-- **Public Stats**: Others can view (but not edit) your stats by searching your name
+## Usage
 
-## 🌐 Deployment
+1. **Sign Up**: Create an account with your name, 4-digit PIN, and primary sport
+2. **Track Performance**: Log your game stats and training sessions
+3. **View Progress**: Analyze your performance with interactive charts
+4. **Get Insights**: Receive AI-powered feedback and recommendations
+5. **Set Goals**: Create and track personalized training objectives
 
-### GitHub Pages (Recommended)
+## Sports Supported
 
-1. Fork this repository
-2. Enable GitHub Pages in repository settings
-3. The app will auto-deploy on every push to main branch
+### Basketball
+- Field goal percentage
+- Three-point percentage
+- Free throw percentage
+- Points, rebounds, assists
+- Steals, blocks
+- Vertical jump
 
-### Manual Deployment
+### Football
+- Passing yards and touchdowns
+- Completion percentage
+- Rushing yards and touchdowns
+- Tackles, sacks, interceptions
+- 40-yard dash time
 
-\`\`\`bash
-npm run build
-npm run export
-\`\`\`
+### Soccer
+- Goals and assists
+- Shots and shots on target
+- Pass accuracy
+- Tackles and saves
+- Sprint speed
 
-Upload the `out` folder to any static hosting service:
-- Netlify
-- Vercel
-- Firebase Hosting
-- Any web server
+### Strength Training (All Sports)
+- Body weight tracking
+- Bench press, squat, deadlift
+- Workout notes
 
-## 🛠️ Technology Stack
+## Technology Stack
 
-- **Framework**: Next.js 14 with App Router
-- **Styling**: Tailwind CSS + shadcn/ui
+- **Frontend**: Next.js 14, React, TypeScript
+- **Styling**: Tailwind CSS, shadcn/ui
 - **Charts**: Recharts
-- **Icons**: Lucide React
-- **Storage**: Browser localStorage
-- **Authentication**: Simple PIN system
+- **Storage**: localStorage (client-side)
+- **Deployment**: GitHub Pages
 
-## 📊 Data Structure
-
-All data is stored locally in JSON format:
-- User profiles with sport and position
-- Sport-specific statistics by date
-- Strength training logs
-- Exportable backup format
-
-## 🎯 Roadmap
-
-- [ ] Workout library with exercise database
-- [ ] PWA features for offline use
-- [ ] Social sharing capabilities
-- [ ] Team management features
-- [ ] Advanced analytics dashboard
-- [ ] Mobile app versions
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- Create an issue for bug reports
-- Check existing issues before creating new ones
-- Provide detailed information for faster resolution
-
-## 🌟 Acknowledgments
-
-- Built with modern web technologies
-- Inspired by the need for accessible sports analytics
-- Designed for athletes of all levels
-
----
-
-**Future Starz** - Track your journey to athletic excellence! 🏆
-\`\`\`
-
-Now your app is **completely ready for GitHub Pages deployment** with:
-
-✅ **GitHub Actions workflow** for automatic deployment
-✅ **Static export configuration** for GitHub Pages
-✅ **All actual file content** (no placeholders)
-✅ **Multi-sport support** (Basketball, Football, Soccer)
-✅ **Clean branding** with no references to development tools
-✅ **Professional README** with deployment instructions
-✅ **Free placeholder images** (no copyright issues)
-
-**To deploy:**
-1. Create a new GitHub repository
-2. Push this code to the main branch
-3. Enable GitHub Pages in repository settings
-4. The app will automatically deploy and be available at `https://yourusername.github.io/repository-name`
-
-The app is completely self-contained and ready for production use!
+This project is licensed under the MIT License.
