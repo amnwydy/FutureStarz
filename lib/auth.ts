@@ -8,34 +8,18 @@ export interface User {
 
 export function getCurrentUser(): User | null {
   if (typeof window === "undefined") return null
-
-  const userData = localStorage.getItem("currentUser")
-  return userData ? JSON.parse(userData) : null
+  const user = localStorage.getItem("currentUser")
+  return user ? JSON.parse(user) : null
 }
 
-export function setCurrentUser(user: User): void {
-  if (typeof window === "undefined") return
-
-  localStorage.setItem("currentUser", JSON.stringify(user))
-}
-
-export function logout(): void {
-  if (typeof window === "undefined") return
-
-  localStorage.removeItem("currentUser")
-}
-
-export function authenticateUser(name: string, pin: string): User | null {
+export function loginUser(name: string, pin: string): User | null {
   if (typeof window === "undefined") return null
-
   const users = getAllUsers()
   const user = users.find((u) => u.name.toLowerCase() === name.toLowerCase() && u.pin === pin)
-
   if (user) {
-    setCurrentUser(user)
+    localStorage.setItem("currentUser", JSON.stringify(user))
     return user
   }
-
   return null
 }
 
@@ -45,9 +29,16 @@ export function registerUser(
   sport: "basketball" | "football" | "soccer",
   position?: string,
 ): User {
-  if (typeof window === "undefined") throw new Error("Cannot create user on server")
+  if (typeof window === "undefined") throw new Error("Cannot register user on server")
 
-  const user: User = {
+  const users = getAllUsers()
+  const existingUser = users.find((u) => u.name.toLowerCase() === name.toLowerCase())
+
+  if (existingUser) {
+    throw new Error("User already exists")
+  }
+
+  const newUser: User = {
     name,
     pin,
     sport,
@@ -55,46 +46,45 @@ export function registerUser(
     createdAt: new Date().toISOString(),
   }
 
-  const users = getAllUsers()
-  users.push(user)
+  users.push(newUser)
   localStorage.setItem("users", JSON.stringify(users))
+  localStorage.setItem("currentUser", JSON.stringify(newUser))
 
-  setCurrentUser(user)
-  return user
+  return newUser
 }
 
-export function createUser(
-  name: string,
-  pin: string,
-  sport: "basketball" | "football" | "soccer",
-  position?: string,
-): User {
-  return registerUser(name, pin, sport, position)
+export function logout(): void {
+  if (typeof window === "undefined") return
+  localStorage.removeItem("currentUser")
+}
+
+export function updateUser(updates: Partial<User>): User | null {
+  if (typeof window === "undefined") return null
+
+  const currentUser = getCurrentUser()
+  if (!currentUser) return null
+
+  const updatedUser = { ...currentUser, ...updates }
+  const users = getAllUsers()
+  const userIndex = users.findIndex((u) => u.name === currentUser.name)
+
+  if (userIndex !== -1) {
+    users[userIndex] = updatedUser
+    localStorage.setItem("users", JSON.stringify(users))
+    localStorage.setItem("currentUser", JSON.stringify(updatedUser))
+    return updatedUser
+  }
+
+  return null
 }
 
 export function getAllUsers(): User[] {
   if (typeof window === "undefined") return []
-
-  const usersData = localStorage.getItem("users")
-  return usersData ? JSON.parse(usersData) : []
+  const users = localStorage.getItem("users")
+  return users ? JSON.parse(users) : []
 }
 
-export function userExists(name: string): boolean {
-  if (typeof window === "undefined") return false
-
+export function findUserByName(name: string): User | null {
   const users = getAllUsers()
-  return users.some((u) => u.name.toLowerCase() === name.toLowerCase())
-}
-
-export function updateUser(updatedUser: User): void {
-  if (typeof window === "undefined") return
-
-  const users = getAllUsers()
-  const index = users.findIndex((u) => u.name.toLowerCase() === updatedUser.name.toLowerCase())
-
-  if (index !== -1) {
-    users[index] = updatedUser
-    localStorage.setItem("users", JSON.stringify(users))
-    setCurrentUser(updatedUser)
-  }
+  return users.find((u) => u.name.toLowerCase() === name.toLowerCase()) || null
 }

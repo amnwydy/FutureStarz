@@ -2,114 +2,59 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Activity, User, Trophy } from "lucide-react"
-import { authenticateUser, registerUser, userExists, getCurrentUser } from "@/lib/auth"
+import { BarChart3, Eye, EyeOff } from "lucide-react"
+import Link from "next/link"
+import { loginUser, findUserByName } from "@/lib/auth"
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  const [name, setName] = useState("")
+  const [pin, setPin] = useState("")
+  const [showPin, setShowPin] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-
-  // Login form state
-  const [loginName, setLoginName] = useState("")
-  const [loginPin, setLoginPin] = useState("")
-
-  // Signup form state
-  const [signupName, setSignupName] = useState("")
-  const [signupPin, setSignupPin] = useState("")
-  const [confirmPin, setConfirmPin] = useState("")
-  const [sport, setSport] = useState<"basketball" | "football" | "soccer">("basketball")
-  const [position, setPosition] = useState("")
-
-  useEffect(() => {
-    const user = getCurrentUser()
-    if (user) {
-      router.push("/dashboard")
-    }
-  }, [router])
+  const [isLoading, setIsLoading] = useState(false)
+  const [viewMode, setViewMode] = useState(false)
+  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError("")
-
-    if (!loginName.trim() || !loginPin.trim()) {
-      setError("Please enter both name and PIN")
-      setIsLoading(false)
-      return
-    }
-
-    if (loginPin.length !== 4 || !/^\d{4}$/.test(loginPin)) {
-      setError("PIN must be exactly 4 digits")
-      setIsLoading(false)
-      return
-    }
+    setIsLoading(true)
 
     try {
-      const user = authenticateUser(loginName.trim(), loginPin)
-      if (user) {
-        router.push("/dashboard")
+      if (viewMode) {
+        // View-only mode - just check if user exists
+        const user = findUserByName(name)
+        if (user) {
+          router.push(`/dashboard?view=${encodeURIComponent(name)}`)
+        } else {
+          setError("User not found")
+        }
       } else {
-        setError("Invalid name or PIN")
+        // Full login mode
+        if (!pin || pin.length !== 4) {
+          setError("PIN must be exactly 4 digits")
+          return
+        }
+
+        const user = loginUser(name, pin)
+        if (user) {
+          router.push("/dashboard")
+        } else {
+          setError("Invalid name or PIN")
+        }
       }
     } catch (err) {
       setError("Login failed. Please try again.")
-    }
-
-    setIsLoading(false)
-  }
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
-    setSuccess("")
-
-    if (!signupName.trim() || !signupPin.trim() || !confirmPin.trim()) {
-      setError("Please fill in all required fields")
+    } finally {
       setIsLoading(false)
-      return
     }
-
-    if (signupPin.length !== 4 || !/^\d{4}$/.test(signupPin)) {
-      setError("PIN must be exactly 4 digits")
-      setIsLoading(false)
-      return
-    }
-
-    if (signupPin !== confirmPin) {
-      setError("PINs do not match")
-      setIsLoading(false)
-      return
-    }
-
-    if (userExists(signupName.trim())) {
-      setError("Name already taken. Please choose a different name.")
-      setIsLoading(false)
-      return
-    }
-
-    try {
-      const user = registerUser(signupName.trim(), signupPin, sport, position.trim() || undefined)
-      setSuccess("Account created successfully! Redirecting...")
-      setTimeout(() => {
-        router.push("/dashboard")
-      }, 1500)
-    } catch (err) {
-      setError("Failed to create account. Please try again.")
-    }
-
-    setIsLoading(false)
   }
 
   return (
@@ -117,159 +62,107 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <Activity className="h-10 w-10 text-blue-600 mr-3" />
-            <h1 className="text-3xl font-bold text-gray-900">SportsPro</h1>
-          </div>
-          <p className="text-gray-600">Track your athletic journey</p>
+          <Link href="/" className="inline-flex items-center space-x-2 mb-4">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <BarChart3 className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-2xl font-bold text-gray-900">SportsPro Tracker</span>
+          </Link>
         </div>
 
-        <Tabs defaultValue="login" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Sign In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
-          </TabsList>
+        <Card>
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl text-center">{viewMode ? "View Stats" : "Welcome Back"}</CardTitle>
+            <CardDescription className="text-center">
+              {viewMode ? "Enter a name to view their public stats" : "Enter your credentials to access your dashboard"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
 
-          {/* Login Tab */}
-          <TabsContent value="login">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <User className="h-5 w-5 mr-2" />
-                  Welcome Back
-                </CardTitle>
-                <CardDescription>Enter your name and PIN to access your account</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-name">Name</Label>
+              {!viewMode && (
+                <div className="space-y-2">
+                  <Label htmlFor="pin">4-Digit PIN</Label>
+                  <div className="relative">
                     <Input
-                      id="login-name"
-                      type="text"
-                      placeholder="Enter your name"
-                      value={loginName}
-                      onChange={(e) => setLoginName(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-pin">PIN</Label>
-                    <Input
-                      id="login-pin"
-                      type="password"
-                      placeholder="Enter 4-digit PIN"
+                      id="pin"
+                      type={showPin ? "text" : "password"}
+                      placeholder="Enter your PIN"
+                      value={pin}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "").slice(0, 4)
+                        setPin(value)
+                      }}
                       maxLength={4}
-                      value={loginPin}
-                      onChange={(e) => setLoginPin(e.target.value.replace(/\D/g, ""))}
-                      disabled={isLoading}
+                      required
                     />
-                  </div>
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Signing In..." : "Sign In"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Signup Tab */}
-          <TabsContent value="signup">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Trophy className="h-5 w-5 mr-2" />
-                  Create Account
-                </CardTitle>
-                <CardDescription>Set up your athletic tracking profile</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Name *</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Enter your name"
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sport">Primary Sport *</Label>
-                    <Select
-                      value={sport}
-                      onValueChange={(value: "basketball" | "football" | "soccer") => setSport(value)}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPin(!showPin)}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your sport" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="basketball">Basketball</SelectItem>
-                        <SelectItem value="football">Football</SelectItem>
-                        <SelectItem value="soccer">Soccer</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="position">Position (Optional)</Label>
-                    <Input
-                      id="position"
-                      type="text"
-                      placeholder="e.g., Point Guard, Quarterback, Midfielder"
-                      value={position}
-                      onChange={(e) => setPosition(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-pin">Create PIN *</Label>
-                    <Input
-                      id="signup-pin"
-                      type="password"
-                      placeholder="Create 4-digit PIN"
-                      maxLength={4}
-                      value={signupPin}
-                      onChange={(e) => setSignupPin(e.target.value.replace(/\D/g, ""))}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-pin">Confirm PIN *</Label>
-                    <Input
-                      id="confirm-pin"
-                      type="password"
-                      placeholder="Confirm 4-digit PIN"
-                      maxLength={4}
-                      value={confirmPin}
-                      onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-                  {success && (
-                    <Alert>
-                      <AlertDescription>{success}</AlertDescription>
-                    </Alert>
-                  )}
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Creating Account..." : "Create Account"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                </div>
+              )}
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button type="submit" className="w-full" disabled={isLoading || !name || (!viewMode && pin.length !== 4)}>
+                {isLoading ? "Loading..." : viewMode ? "View Stats" : "Login"}
+              </Button>
+            </form>
+
+            <div className="mt-6 space-y-4">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Or</span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full bg-transparent"
+                onClick={() => {
+                  setViewMode(!viewMode)
+                  setError("")
+                  setPin("")
+                }}
+              >
+                {viewMode ? "Login to Edit" : "Just View Stats"}
+              </Button>
+
+              <div className="text-center">
+                <span className="text-sm text-gray-600">Don't have an account? </span>
+                <Link href="/signup" className="text-sm text-blue-600 hover:underline">
+                  Sign up
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
