@@ -3,239 +3,333 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Brain, Target, Award } from "lucide-react"
-import { getBasketballStats, getFootballStats, getSoccerStats, getStrengthStats } from "@/lib/data"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Brain, Target, TrendingUp, Lightbulb, RefreshCw, Zap } from "lucide-react"
+import { getStats } from "@/lib/data"
+import { getCurrentUser } from "@/lib/auth"
+import { toast } from "sonner"
 
-interface AIFeedbackProps {
-  userName: string
-  sport: "basketball" | "football" | "soccer"
+interface AIFeedbackData {
+  performance: string
+  strengths: string[]
+  improvements: string[]
+  goals: string[]
+  motivation: string
 }
 
-export function AIFeedback({ userName, sport }: AIFeedbackProps) {
-  const [feedback, setFeedback] = useState<string>("")
-  const [goals, setGoals] = useState<string>("")
-  const [isLoading, setIsLoading] = useState(false)
+export default function AIFeedback() {
+  const [feedback, setFeedback] = useState<AIFeedbackData | null>(null)
+  const [goals, setGoals] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const user = getCurrentUser()
+  const basketballStats = getStats("basketball")
+  const footballStats = getStats("football")
+  const soccerStats = getStats("soccer")
+  const strengthStats = getStats("strength")
 
   const generateFeedback = async () => {
-    setIsLoading(true)
+    if (!user) return
 
-    // Get user's stats
-    let sportStats: any[] = []
-    switch (sport) {
-      case "basketball":
-        sportStats = getBasketballStats(userName)
-        break
-      case "football":
-        sportStats = getFootballStats(userName)
-        break
-      case "soccer":
-        sportStats = getSoccerStats(userName)
-        break
+    setLoading(true)
+    setError(null)
+
+    try {
+      const allStats = {
+        basketball: basketballStats,
+        football: footballStats,
+        soccer: soccerStats,
+        strength: strengthStats,
+      }
+
+      const response = await fetch("/api/generate-feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user,
+          stats: allStats,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to generate feedback")
+      }
+
+      const data = await response.json()
+      setFeedback(data.feedback)
+      toast.success("AI feedback generated successfully!")
+    } catch (err) {
+      setError("Failed to generate AI feedback. Please try again.")
+      console.error("Error generating feedback:", err)
+    } finally {
+      setLoading(false)
     }
-
-    const strengthStats = getStrengthStats(userName)
-
-    // Simulate AI analysis (in a real app, this would call an AI API)
-    setTimeout(() => {
-      const recentStats = sportStats.slice(-5) // Last 5 entries
-      const analysis = generateMockAnalysis(sport, recentStats, strengthStats)
-      setFeedback(analysis.feedback)
-      setGoals(analysis.goals)
-      setIsLoading(false)
-    }, 2000)
   }
 
-  const generateMockAnalysis = (sport: string, sportStats: any[], strengthStats: any[]) => {
-    const sportSpecificAnalysis = {
-      basketball: {
-        feedback: `Based on your recent basketball performance, here's what I've observed:
+  const generateGoals = async () => {
+    if (!user) return
 
-🏀 **Shooting Analysis**: Your field goal percentage has shown improvement over the last 5 games, averaging ${sportStats.length > 0 ? "45%" : "N/A"}. This is solid for your level, comparable to college players.
+    setLoading(true)
+    setError(null)
 
-📈 **Trend Analysis**: Your rebounding has been consistent, showing good positioning and effort. Your assist numbers suggest you're developing good court vision.
+    try {
+      const allStats = {
+        basketball: basketballStats,
+        football: footballStats,
+        soccer: soccerStats,
+        strength: strengthStats,
+      }
 
-💪 **Strength Connection**: Your vertical jump improvements correlate with your strength training progress. Keep focusing on leg strength for better performance.
+      const response = await fetch("/api/generate-goals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user,
+          stats: allStats,
+        }),
+      })
 
-🎯 **Areas for Growth**: Work on 3-point consistency and free throw shooting. These are high-impact areas that can significantly boost your scoring.`,
-        goals: `**Next 30 Days Goals:**
-• Increase 3-point shooting percentage by 5%
-• Improve free throw percentage to 80%+
-• Add 2 inches to vertical jump
-• Maintain current rebounding average
-• Focus on reducing turnovers`,
-      },
-      football: {
-        feedback: `Your football performance analysis shows promising development:
+      if (!response.ok) {
+        throw new Error("Failed to generate goals")
+      }
 
-🏈 **Passing Game**: Your completion percentage has been trending upward, showing improved accuracy and decision-making under pressure.
-
-🏃 **Athletic Performance**: Your 40-yard dash times indicate good speed for your position. Combined with your strength gains, you're building a solid athletic foundation.
-
-💪 **Physical Development**: Your strength training is paying off - the correlation between your squat improvements and rushing power is evident.
-
-🎯 **Game Impact**: Your tackle numbers show consistent defensive contribution, and your interception rate suggests good field awareness.`,
-        goals: `**Next 30 Days Goals:**
-• Improve passing accuracy by 3%
-• Reduce 40-yard dash time by 0.1 seconds
-• Increase bench press by 10 lbs
-• Focus on reading defensive formations
-• Work on footwork and agility drills`,
-      },
-      soccer: {
-        feedback: `Your soccer performance shows well-rounded development:
-
-⚽ **Offensive Impact**: Your goals-to-shots ratio indicates good finishing ability. Your assist numbers show you're a team player who creates opportunities.
-
-🎯 **Technical Skills**: Pass completion percentage is strong, showing good ball control and decision-making under pressure.
-
-🏃 **Physical Attributes**: Your sprint speed improvements align with your strength training, creating a more explosive player profile.
-
-🛡️ **Defensive Contribution**: Your tackle success rate shows good defensive awareness and positioning.`,
-        goals: `**Next 30 Days Goals:**
-• Increase shot accuracy by 10%
-• Improve sprint speed by 0.5 mph
-• Maintain 85%+ pass completion rate
-• Add 2 goals per game average
-• Focus on first touch and ball control`,
-      },
+      const data = await response.json()
+      setGoals(data.goals)
+      toast.success("Personalized goals generated!")
+    } catch (err) {
+      setError("Failed to generate goals. Please try again.")
+      console.error("Error generating goals:", err)
+    } finally {
+      setLoading(false)
     }
-
-    return sportSpecificAnalysis[sport as keyof typeof sportSpecificAnalysis] || sportSpecificAnalysis.basketball
   }
 
   useEffect(() => {
-    // Auto-generate feedback on component mount if user has stats
-    const hasStats = (() => {
-      switch (sport) {
-        case "basketball":
-          return getBasketballStats(userName).length > 0
-        case "football":
-          return getFootballStats(userName).length > 0
-        case "soccer":
-          return getSoccerStats(userName).length > 0
-        default:
-          return false
-      }
-    })()
-
-    if (hasStats && !feedback) {
+    if (
+      user &&
+      (basketballStats.length > 0 || footballStats.length > 0 || soccerStats.length > 0 || strengthStats.length > 0)
+    ) {
       generateFeedback()
     }
-  }, [userName, sport, feedback])
+  }, [user])
+
+  if (!user) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center h-48">
+          <p className="text-muted-foreground">Please log in to view AI feedback.</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const hasStats =
+    basketballStats.length > 0 || footballStats.length > 0 || soccerStats.length > 0 || strengthStats.length > 0
+
+  if (!hasStats) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Brain className="h-5 w-5" />
+            <span>AI Performance Analysis</span>
+          </CardTitle>
+          <CardDescription>
+            Get personalized insights and recommendations based on your performance data
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <Lightbulb className="h-4 w-4" />
+            <AlertDescription>
+              Start tracking your performance to receive AI-powered feedback and personalized training recommendations.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5" />
-            AI Performance Analysis
-          </CardTitle>
-          <CardDescription>Get personalized insights based on your {sport} performance data</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!feedback && !isLoading && (
-            <div className="text-center py-8">
-              <Brain className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-500 mb-4">
-                Ready to analyze your performance? Click below to get AI-powered insights.
-              </p>
-              <Button onClick={generateFeedback}>Generate AI Analysis</Button>
-            </div>
-          )}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold flex items-center space-x-2">
+            <Brain className="h-6 w-6" />
+            <span>AI Performance Analysis</span>
+          </h2>
+          <p className="text-muted-foreground">Personalized insights powered by artificial intelligence</p>
+        </div>
+        <div className="flex space-x-2">
+          <Button onClick={generateFeedback} disabled={loading} variant="outline">
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Refresh Analysis
+          </Button>
+          <Button onClick={generateGoals} disabled={loading}>
+            <Target className="h-4 w-4 mr-2" />
+            Generate Goals
+          </Button>
+        </div>
+      </div>
 
-          {isLoading && (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-gray-500">Analyzing your performance data...</p>
-            </div>
-          )}
-
-          {feedback && (
-            <div className="space-y-4">
-              <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-line text-sm leading-relaxed">{feedback}</div>
-              </div>
-              <Button onClick={generateFeedback} variant="outline" size="sm">
-                Refresh Analysis
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {goals && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Personalized Training Goals
-            </CardTitle>
-            <CardDescription>AI-recommended goals based on your current performance</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="prose prose-sm max-w-none">
-              <div className="whitespace-pre-line text-sm leading-relaxed">{goals}</div>
-            </div>
-          </CardContent>
-        </Card>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5" />
-            Pro Comparison
-          </CardTitle>
-          <CardDescription>See how you stack up against professional athletes</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {sport === "basketball" && (
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <div className="font-medium">NBA Average FG%</div>
-                  <div className="text-2xl font-bold text-blue-600">46.5%</div>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <div className="font-medium">Your Recent FG%</div>
-                  <div className="text-2xl font-bold text-green-600">45.0%</div>
-                </div>
-              </div>
-            )}
+      <Tabs defaultValue="feedback" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="feedback">Performance Feedback</TabsTrigger>
+          <TabsTrigger value="goals">Personalized Goals</TabsTrigger>
+        </TabsList>
 
-            {sport === "football" && (
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <div className="font-medium">NFL QB Completion%</div>
-                  <div className="text-2xl font-bold text-blue-600">64.3%</div>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <div className="font-medium">Your Completion%</div>
-                  <div className="text-2xl font-bold text-green-600">62.0%</div>
-                </div>
-              </div>
-            )}
+        <TabsContent value="feedback" className="space-y-4">
+          {loading && !feedback ? (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-64" />
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </CardContent>
+              </Card>
+            </div>
+          ) : feedback ? (
+            <div className="grid gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <TrendingUp className="h-5 w-5 text-blue-500" />
+                    <span>Overall Performance</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm leading-relaxed">{feedback.performance}</p>
+                </CardContent>
+              </Card>
 
-            {sport === "soccer" && (
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <div className="font-medium">Pro Pass Accuracy</div>
-                  <div className="text-2xl font-bold text-blue-600">83.2%</div>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <div className="font-medium">Your Pass Accuracy</div>
-                  <div className="text-2xl font-bold text-green-600">81.5%</div>
-                </div>
-              </div>
-            )}
+              <div className="grid md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Zap className="h-5 w-5 text-green-500" />
+                      <span>Strengths</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {feedback.strengths.map((strength, index) => (
+                        <Badge key={index} variant="secondary" className="mr-2 mb-2">
+                          {strength}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <p className="text-xs text-gray-500">
-              * Comparisons are estimates based on publicly available professional sports statistics
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Target className="h-5 w-5 text-orange-500" />
+                      <span>Areas for Improvement</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {feedback.improvements.map((improvement, index) => (
+                        <Badge key={index} variant="outline" className="mr-2 mb-2">
+                          {improvement}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Lightbulb className="h-5 w-5 text-yellow-500" />
+                    <span>Motivation</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm leading-relaxed italic">{feedback.motivation}</p>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="flex items-center justify-center h-48">
+                <div className="text-center">
+                  <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground mb-4">No AI feedback available yet.</p>
+                  <Button onClick={generateFeedback} disabled={loading}>
+                    <Brain className="h-4 w-4 mr-2" />
+                    Generate AI Feedback
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="goals" className="space-y-4">
+          {goals.length > 0 ? (
+            <div className="grid gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Target className="h-5 w-5 text-blue-500" />
+                    <span>Personalized Training Goals</span>
+                  </CardTitle>
+                  <CardDescription>
+                    AI-generated goals based on your current performance and areas for improvement
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {goals.map((goal, index) => (
+                      <div key={index} className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg">
+                        <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
+                          {index + 1}
+                        </div>
+                        <p className="text-sm leading-relaxed">{goal}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="flex items-center justify-center h-48">
+                <div className="text-center">
+                  <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground mb-4">No personalized goals generated yet.</p>
+                  <Button onClick={generateGoals} disabled={loading}>
+                    <Target className="h-4 w-4 mr-2" />
+                    Generate Goals
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

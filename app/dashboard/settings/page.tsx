@@ -2,22 +2,23 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Separator } from "@/components/ui/separator"
+import { getCurrentUser } from "@/lib/auth"
+import { exportData, importData } from "@/lib/data"
 import { DashboardHeader } from "@/components/dashboard-header"
-import { getCurrentUser, logout } from "@/lib/auth"
-import { exportUserData } from "@/lib/data"
-import { Download, Trash2, Shield, Sun } from "lucide-react"
-import { toast } from "@/hooks/use-toast"
+import { Settings, Download, Upload, Trash2, AlertTriangle } from "lucide-react"
+import { toast } from "sonner"
 
 export default function SettingsPage() {
+  const [user, setUser] = useState(getCurrentUser())
+  const [importText, setImportText] = useState("")
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [darkMode, setDarkMode] = useState(false)
-  const [notifications, setNotifications] = useState(true)
 
   useEffect(() => {
     const currentUser = getCurrentUser()
@@ -26,245 +27,227 @@ export default function SettingsPage() {
       return
     }
     setUser(currentUser)
-    setIsLoading(false)
-
-    // Load theme preference
-    const theme = localStorage.getItem("theme")
-    setDarkMode(theme === "dark")
   }, [router])
 
   const handleExportData = () => {
-    if (!user) return
-
     try {
-      const data = exportUserData(user.name)
-      const blob = new Blob([data], { type: "application/json" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `${user.name}_sports_data_${new Date().toISOString().split("T")[0]}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-
-      toast({
-        title: "Data Exported!",
-        description: "Your data has been downloaded successfully.",
-      })
+      const data = exportData()
+      if (data) {
+        const blob = new Blob([data], { type: "application/json" })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `sports-tracker-data-${new Date().toISOString().split("T")[0]}.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        toast.success("Data exported successfully!")
+      }
     } catch (error) {
-      toast({
-        title: "Export Failed",
-        description: "Failed to export data. Please try again.",
-        variant: "destructive",
-      })
+      toast.error("Failed to export data")
     }
   }
 
-  const handleClearData = () => {
-    if (!user) return
+  const handleImportData = () => {
+    if (!importText.trim()) {
+      toast.error("Please paste your data first")
+      return
+    }
 
-    const confirmed = window.confirm("Are you sure you want to clear all your data? This action cannot be undone.")
+    setLoading(true)
+    try {
+      const success = importData(importText)
+      if (success) {
+        toast.success("Data imported successfully!")
+        setImportText("")
+        // Refresh the page to show updated data
+        window.location.reload()
+      } else {
+        toast.error("Failed to import data. Please check the format.")
+      }
+    } catch (error) {
+      toast.error("Invalid data format")
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    if (confirmed) {
-      // Clear all user data
-      localStorage.removeItem(`basketballStats_${user.name.toLowerCase()}`)
-      localStorage.removeItem(`footballStats_${user.name.toLowerCase()}`)
-      localStorage.removeItem(`soccerStats_${user.name.toLowerCase()}`)
-      localStorage.removeItem(`strengthStats_${user.name.toLowerCase()}`)
-
-      toast({
-        title: "Data Cleared",
-        description: "All your sports data has been cleared.",
-      })
-
-      // Redirect to dashboard
-      router.push("/dashboard")
+  const handleClearAllData = () => {
+    if (window.confirm("Are you sure you want to clear all data? This action cannot be undone.")) {
+      if (window.confirm("This will permanently delete all your stats and progress. Are you absolutely sure?")) {
+        localStorage.removeItem("basketballStats")
+        localStorage.removeItem("footballStats")
+        localStorage.removeItem("soccerStats")
+        localStorage.removeItem("strengthStats")
+        toast.success("All data cleared successfully")
+      }
     }
   }
 
   const handleDeleteAccount = () => {
-    if (!user) return
-
-    const confirmed = window.confirm(
-      "Are you sure you want to delete your account? This will remove all your data and cannot be undone.",
-    )
-
-    if (confirmed) {
-      // Clear all data
-      localStorage.removeItem(`basketballStats_${user.name.toLowerCase()}`)
-      localStorage.removeItem(`footballStats_${user.name.toLowerCase()}`)
-      localStorage.removeItem(`soccerStats_${user.name.toLowerCase()}`)
-      localStorage.removeItem(`strengthStats_${user.name.toLowerCase()}`)
-
-      // Remove user from users list
-      const users = JSON.parse(localStorage.getItem("users") || "[]")
-      const updatedUsers = users.filter((u: any) => u.name.toLowerCase() !== user.name.toLowerCase())
-      localStorage.setItem("users", JSON.stringify(updatedUsers))
-
-      // Logout and redirect
-      logout()
-      router.push("/")
-
-      toast({
-        title: "Account Deleted",
-        description: "Your account and all data have been permanently deleted.",
-      })
+    if (window.confirm("Are you sure you want to delete your account? This will remove all your data permanently.")) {
+      if (
+        window.confirm("This action cannot be undone. Type 'DELETE' to confirm:") &&
+        window.prompt("Type 'DELETE' to confirm:") === "DELETE"
+      ) {
+        // Clear all data
+        localStorage.clear()
+        toast.success("Account deleted successfully")
+        router.push("/")
+      }
     }
   }
 
-  const toggleDarkMode = (enabled: boolean) => {
-    setDarkMode(enabled)
-    localStorage.setItem("theme", enabled ? "dark" : "light")
-
-    if (enabled) {
-      document.documentElement.classList.add("dark")
-    } else {
-      document.documentElement.classList.remove("dark")
-    }
-
-    toast({
-      title: enabled ? "Dark Mode Enabled" : "Light Mode Enabled",
-      description: `Switched to ${enabled ? "dark" : "light"} theme.`,
-    })
-  }
-
-  if (isLoading) {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading settings...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     )
   }
 
-  if (!user) {
-    return null
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <DashboardHeader user={user} />
+    <div className="min-h-screen bg-gray-50/50">
+      <DashboardHeader />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Settings</h1>
-            <p className="text-gray-600 dark:text-gray-400">Manage your app preferences and data</p>
-          </div>
-
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sun className="h-5 w-5" />
-                  Appearance
-                </CardTitle>
-                <CardDescription>Customize how the app looks and feels</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="dark-mode">Dark Mode</Label>
-                    <p className="text-sm text-gray-500">Switch between light and dark themes</p>
-                  </div>
-                  <Switch id="dark-mode" checked={darkMode} onCheckedChange={toggleDarkMode} />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Download className="h-5 w-5" />
-                  Data Management
-                </CardTitle>
-                <CardDescription>Export, backup, or clear your sports data</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Export Data</Label>
-                    <p className="text-sm text-gray-500">Download all your sports data as a JSON file</p>
-                  </div>
-                  <Button onClick={handleExportData} variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Clear All Data</Label>
-                    <p className="text-sm text-gray-500">Remove all your sports statistics (keeps account)</p>
-                  </div>
-                  <Button onClick={handleClearData} variant="outline" size="sm">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Clear Data
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Privacy & Security
-                </CardTitle>
-                <CardDescription>Your data privacy and security settings</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Data Storage</Label>
-                  <p className="text-sm text-gray-500">
-                    All your data is stored locally in your browser. No data is sent to external servers.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>PIN Protection</Label>
-                  <p className="text-sm text-gray-500">
-                    Your 4-digit PIN protects your data from unauthorized edits. Only you can modify your stats.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Public Visibility</Label>
-                  <p className="text-sm text-gray-500">
-                    Other users can search for your name and view your stats (read-only), but cannot edit them without
-                    your PIN.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-red-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-red-600">
-                  <Trash2 className="h-5 w-5" />
-                  Danger Zone
-                </CardTitle>
-                <CardDescription>Irreversible actions that will permanently delete your data</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-red-600">Delete Account</Label>
-                    <p className="text-sm text-gray-500">Permanently delete your account and all associated data</p>
-                  </div>
-                  <Button onClick={handleDeleteAccount} variant="destructive" size="sm">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Account
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2 flex items-center space-x-2">
+            <Settings className="h-8 w-8" />
+            <span>Settings</span>
+          </h1>
+          <p className="text-muted-foreground">Manage your account settings and data preferences.</p>
         </div>
-      </main>
+
+        <div className="max-w-4xl space-y-6">
+          {/* Data Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Download className="h-5 w-5" />
+                <span>Data Management</span>
+              </CardTitle>
+              <CardDescription>Export, import, or manage your sports tracking data</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Export Data */}
+              <div>
+                <h3 className="font-semibold mb-2">Export Data</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Download all your stats and progress as a JSON file for backup or transfer.
+                </p>
+                <Button onClick={handleExportData} variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export All Data
+                </Button>
+              </div>
+
+              <Separator />
+
+              {/* Import Data */}
+              <div>
+                <h3 className="font-semibold mb-2">Import Data</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Import previously exported data to restore your stats and progress.
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="importData">Paste your exported data here:</Label>
+                    <Textarea
+                      id="importData"
+                      placeholder="Paste your JSON data here..."
+                      value={importText}
+                      onChange={(e) => setImportText(e.target.value)}
+                      rows={6}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                  <Button onClick={handleImportData} disabled={loading || !importText.trim()}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    {loading ? "Importing..." : "Import Data"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Account Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <AlertTriangle className="h-5 w-5" />
+                <span>Account Actions</span>
+              </CardTitle>
+              <CardDescription>Manage your account and data</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Clear Data */}
+              <div>
+                <h3 className="font-semibold mb-2 text-orange-600">Clear All Data</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Remove all your stats and progress data. Your account will remain active.
+                </p>
+                <Button
+                  onClick={handleClearAllData}
+                  variant="outline"
+                  className="border-orange-200 text-orange-600 hover:bg-orange-50 bg-transparent"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear All Data
+                </Button>
+              </div>
+
+              <Separator />
+
+              {/* Delete Account */}
+              <div>
+                <h3 className="font-semibold mb-2 text-red-600">Delete Account</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Warning: This will permanently delete your account and all your data. This action cannot be undone.
+                  </AlertDescription>
+                </Alert>
+                <Button onClick={handleDeleteAccount} variant="destructive">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Account
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* App Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>About Sports Tracker</CardTitle>
+              <CardDescription>Application information and version details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <p>
+                  <strong>Version:</strong> 1.0.0
+                </p>
+                <p>
+                  <strong>Last Updated:</strong> {new Date().toLocaleDateString()}
+                </p>
+                <p>
+                  <strong>Data Storage:</strong> Local Browser Storage
+                </p>
+                <p>
+                  <strong>Features:</strong> Multi-sport tracking, AI feedback, Progress charts, Data export/import
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }

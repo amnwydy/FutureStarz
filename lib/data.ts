@@ -1,6 +1,7 @@
+// Types for different sports stats
 export interface BasketballStats {
   id: string
-  userId: string
+  userId?: string
   date: string
   points: number
   assists: number
@@ -14,31 +15,34 @@ export interface BasketballStats {
   threePointersAttempted: number
   freeThrowsMade: number
   freeThrowsAttempted: number
+  fieldGoalPercentage: number
+  threePointPercentage: number
+  freeThrowPercentage: number
   minutesPlayed: number
-  verticalJump?: number
 }
 
 export interface FootballStats {
   id: string
-  userId: string
+  userId?: string
   date: string
-  passingYards: number
-  passingTouchdowns: number
-  interceptions: number
   completions: number
   attempts: number
+  yards: number
+  touchdowns: number
+  interceptions: number
   rushingYards: number
   rushingTouchdowns: number
+  receptions: number
   receivingYards: number
   receivingTouchdowns: number
   tackles: number
   sacks: number
-  fortyYardDash?: number
+  completionPercentage: number
 }
 
 export interface SoccerStats {
   id: string
-  userId: string
+  userId?: string
   date: string
   goals: number
   assists: number
@@ -47,170 +51,127 @@ export interface SoccerStats {
   passes: number
   passesCompleted: number
   tackles: number
-  saves: number
+  interceptions: number
+  fouls: number
   yellowCards: number
   redCards: number
-  sprintSpeed?: number
+  minutesPlayed: number
+  passAccuracy: number
+  shotAccuracy: number
 }
 
-export interface StrengthStats {
+export interface StrengthTrainingStats {
   id: string
-  userId: string
+  userId?: string
   date: string
+  exercise: string
+  weight: number
+  reps: number
+  sets: number
+  restTime: number
+  notes: string
   bodyWeight: number
-  benchPress: number
-  squat: number
-  deadlift: number
-  notes?: string
+  duration: number
 }
 
-export interface TrainingGoal {
-  id: string
-  userId: string
-  sport: string
-  metric: string
-  currentValue: number
-  targetValue: number
-  deadline: string
-  achieved: boolean
-  createdAt: string
-}
-
-// Basketball Stats Functions
-export function getBasketballStats(userId: string): BasketballStats[] {
+// Generic function to get stats for any sport
+export function getStats(sport: string): any[] {
   if (typeof window === "undefined") return []
-  const stats = localStorage.getItem(`basketball_stats_${userId}`)
-  return stats ? JSON.parse(stats) : []
+
+  const key = `${sport}_stats`
+  const stored = localStorage.getItem(key)
+  return stored ? JSON.parse(stored) : []
 }
 
-export function addBasketballStat(userId: string, stat: Omit<BasketballStats, "id" | "userId">): BasketballStats {
-  if (typeof window === "undefined") throw new Error("Cannot add stat on server")
+// Generic function to save stats for any sport
+export function saveStats(sport: string, stats: any): void {
+  if (typeof window === "undefined") return
 
-  const newStat: BasketballStats = {
-    ...stat,
-    id: Date.now().toString(),
-    userId,
-  }
-
-  const stats = getBasketballStats(userId)
-  stats.push(newStat)
-  localStorage.setItem(`basketball_stats_${userId}`, JSON.stringify(stats))
-
-  return newStat
+  const key = `${sport}_stats`
+  const existingStats = getStats(sport)
+  const newStats = [...existingStats, { ...stats, id: Date.now().toString() }]
+  localStorage.setItem(key, JSON.stringify(newStats))
 }
 
-// Football Stats Functions
-export function getFootballStats(userId: string): FootballStats[] {
-  if (typeof window === "undefined") return []
-  const stats = localStorage.getItem(`football_stats_${userId}`)
-  return stats ? JSON.parse(stats) : []
+// Basketball specific functions
+export function getBasketballStats(userId?: string): BasketballStats[] {
+  const stats = getStats("basketball")
+  return userId ? stats.filter((stat: BasketballStats) => stat.userId === userId) : stats
 }
 
-export function addFootballStat(userId: string, stat: Omit<FootballStats, "id" | "userId">): FootballStats {
-  if (typeof window === "undefined") throw new Error("Cannot add stat on server")
-
-  const newStat: FootballStats = {
-    ...stat,
-    id: Date.now().toString(),
-    userId,
-  }
-
-  const stats = getFootballStats(userId)
-  stats.push(newStat)
-  localStorage.setItem(`football_stats_${userId}`, JSON.stringify(stats))
-
-  return newStat
+export function saveBasketballStats(stats: Omit<BasketballStats, "id">): void {
+  saveStats("basketball", stats)
 }
 
-// Soccer Stats Functions
-export function getSoccerStats(userId: string): SoccerStats[] {
-  if (typeof window === "undefined") return []
-  const stats = localStorage.getItem(`soccer_stats_${userId}`)
-  return stats ? JSON.parse(stats) : []
+// Football specific functions
+export function getFootballStats(userId?: string): FootballStats[] {
+  const stats = getStats("football")
+  return userId ? stats.filter((stat: FootballStats) => stat.userId === userId) : stats
 }
 
-export function addSoccerStat(userId: string, stat: Omit<SoccerStats, "id" | "userId">): SoccerStats {
-  if (typeof window === "undefined") throw new Error("Cannot add stat on server")
-
-  const newStat: SoccerStats = {
-    ...stat,
-    id: Date.now().toString(),
-    userId,
-  }
-
-  const stats = getSoccerStats(userId)
-  stats.push(newStat)
-  localStorage.setItem(`soccer_stats_${userId}`, JSON.stringify(stats))
-
-  return newStat
+export function saveFootballStats(stats: Omit<FootballStats, "id">): void {
+  saveStats("football", stats)
 }
 
-// Strength Stats Functions
-export function getStrengthStats(userId: string): StrengthStats[] {
-  if (typeof window === "undefined") return []
-  const stats = localStorage.getItem(`strength_stats_${userId}`)
-  return stats ? JSON.parse(stats) : []
+// Soccer specific functions
+export function getSoccerStats(userId?: string): SoccerStats[] {
+  const stats = getStats("soccer")
+  return userId ? stats.filter((stat: SoccerStats) => stat.userId === userId) : stats
 }
 
-export function addStrengthStat(userId: string, stat: Omit<StrengthStats, "id" | "userId">): StrengthStats {
-  if (typeof window === "undefined") throw new Error("Cannot add stat on server")
-
-  const newStat: StrengthStats = {
-    ...stat,
-    id: Date.now().toString(),
-    userId,
-  }
-
-  const stats = getStrengthStats(userId)
-  stats.push(newStat)
-  localStorage.setItem(`strength_stats_${userId}`, JSON.stringify(stats))
-
-  return newStat
+export function saveSoccerStats(stats: Omit<SoccerStats, "id">): void {
+  saveStats("soccer", stats)
 }
 
-// Training Goals Functions
-export function getTrainingGoals(userId: string): TrainingGoal[] {
-  if (typeof window === "undefined") return []
-  const goals = localStorage.getItem(`training_goals_${userId}`)
-  return goals ? JSON.parse(goals) : []
+// Strength training specific functions
+export function getStrengthTraining(userId?: string): StrengthTrainingStats[] {
+  const stats = getStats("strength")
+  return userId ? stats.filter((stat: StrengthTrainingStats) => stat.userId === userId) : stats
 }
 
-export function saveTrainingGoal(userId: string, goal: Omit<TrainingGoal, "id" | "userId">): TrainingGoal {
-  if (typeof window === "undefined") throw new Error("Cannot save goal on server")
-
-  const newGoal: TrainingGoal = {
-    ...goal,
-    id: Date.now().toString(),
-    userId,
-  }
-
-  const goals = getTrainingGoals(userId)
-  goals.push(newGoal)
-  localStorage.setItem(`training_goals_${userId}`, JSON.stringify(goals))
-
-  return newGoal
+export function saveStrengthTraining(stats: Omit<StrengthTrainingStats, "id">): void {
+  saveStats("strength", stats)
 }
 
-// Utility Functions
-export function exportUserData(userId: string) {
-  const data = {
+// Get all stats for a user across all sports
+export function getAllUserStats(userId: string) {
+  return {
     basketball: getBasketballStats(userId),
     football: getFootballStats(userId),
     soccer: getSoccerStats(userId),
-    strength: getStrengthStats(userId),
-    goals: getTrainingGoals(userId),
-    exportDate: new Date().toISOString(),
+    strength: getStrengthTraining(userId),
   }
-
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = `sports-data-${userId}-${new Date().toISOString().split("T")[0]}.json`
-  a.click()
-  URL.revokeObjectURL(url)
 }
 
-export function getStrengthTraining(userId: string): StrengthStats[] {
-  return getStrengthStats(userId)
+// Export data for backup
+export function exportAllData() {
+  if (typeof window === "undefined") return null
+
+  return {
+    basketball: getBasketballStats(),
+    football: getFootballStats(),
+    soccer: getSoccerStats(),
+    strength: getStrengthTraining(),
+    exportDate: new Date().toISOString(),
+  }
+}
+
+// Import data from backup
+export function importData(data: any) {
+  if (typeof window === "undefined") return
+
+  if (data.basketball) localStorage.setItem("basketball_stats", JSON.stringify(data.basketball))
+  if (data.football) localStorage.setItem("football_stats", JSON.stringify(data.football))
+  if (data.soccer) localStorage.setItem("soccer_stats", JSON.stringify(data.soccer))
+  if (data.strength) localStorage.setItem("strength_stats", JSON.stringify(data.strength))
+}
+
+// Clear all data
+export function clearAllData() {
+  if (typeof window === "undefined") return
+
+  localStorage.removeItem("basketball_stats")
+  localStorage.removeItem("football_stats")
+  localStorage.removeItem("soccer_stats")
+  localStorage.removeItem("strength_stats")
 }
